@@ -3,6 +3,16 @@ name: Deploy Dokploy
 on:
   push:
     branches: [main, uat, development]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy
+        required: true
+        type: choice
+        options:
+          - production
+          - uat
+          - development
 
 permissions:
   contents: read
@@ -15,16 +25,29 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.ref_name == 'main' && 'production' || github.ref_name) }}
     steps:
       - name: Select Dokploy compose
         id: compose
         run: |
-          case "${GITHUB_REF_NAME}" in
-            main) echo "id=${PRODUCTION_COMPOSE_ID}" >> "$GITHUB_OUTPUT" ;;
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            TARGET="${{ inputs.environment }}"
+          else
+            case "${GITHUB_REF_NAME}" in
+              main) TARGET="production" ;;
+              uat) TARGET="uat" ;;
+              development) TARGET="development" ;;
+              *) echo "Unsupported branch ${GITHUB_REF_NAME}" >&2; exit 1 ;;
+            esac
+          fi
+
+          case "${TARGET}" in
+            production) echo "id=${PRODUCTION_COMPOSE_ID}" >> "$GITHUB_OUTPUT" ;;
             uat) echo "id=${UAT_COMPOSE_ID}" >> "$GITHUB_OUTPUT" ;;
             development) echo "id=${DEVELOPMENT_COMPOSE_ID}" >> "$GITHUB_OUTPUT" ;;
-            *) echo "Unsupported branch ${GITHUB_REF_NAME}" >&2; exit 1 ;;
+            *) echo "Unsupported environment ${TARGET}" >&2; exit 1 ;;
           esac
+          echo "target=${TARGET}" >> "$GITHUB_OUTPUT"
       - name: Queue Dokploy deployment
         env:
           DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
