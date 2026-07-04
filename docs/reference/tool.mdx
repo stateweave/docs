@@ -1,0 +1,19 @@
+---
+title: Tool interface
+description: The Zod-validated tool contract.
+---
+
+```ts
+import type { z } from "zod";
+
+export type Tool = {
+  name: string;
+  description: string;
+  schema: z.ZodSchema;
+  execute: (args: unknown) => Promise<unknown>;
+};
+```
+
+Tool descriptions are included in `availableActions` so the model can choose valid `call_tool` operations.
+
+Tool results are inserted into the graph as `tool_result` nodes.

@@ -1,0 +1,35 @@
+---
+title: Traces
+description: Inspect every frame, prompt, token stream, and state update.
+---
+
+Each StateWeave step records a trace.
+
+```ts
+export type TraceStep = {
+  step: number;
+  frameBefore: GraphFrame;
+  prompt: string;
+  tokenEstimate: { estimatedTokens: number; messageCount: number };
+  streamedTokens: string[];
+  rawModelOutput: string;
+  parsedOps: GraphOp[];
+  frameAfter: GraphFrame;
+};
+```
+
+The CLI writes traces to:
+
+```txt
+src/traces/
+```
+
+Use traces to answer:
+
+- what state did the model receive?
+- what prompt was generated?
+- what tokens streamed back?
+- what graph operations were accepted?
+- how did the state graph change?
+
+For StateWeave graph steps, `messageCount` is `0`. The primitive is graph/frame state, not a message list.

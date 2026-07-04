@@ -1,0 +1,81 @@
+---
+title: Messages vs StateWeave
+description: Compare transcript context with graph/frame context.
+---
+
+Most agent SDKs use a transcript as the runtime state.
+
+```ts
+const messages = [
+  { role: "system", content: "You are a coding agent." },
+  { role: "user", content: "Login fails after token refresh." },
+  { role: "tool", content: "auth.ts summary: token clears before session save." }
+];
+```
+
+StateWeave uses a graph frame.
+
+```ts
+const frame = {
+  frame: {
+    objective: "Find why login fails after token refresh.",
+    currentFocus: "Use existing graph state and latest input.",
+    activeConstraints: ["Do not rewrite the auth system."],
+    availableActions: ["add_node", "add_edge", "call_tool", "final"]
+  },
+  graph: {
+    nodes: [
+      { id: "intent_1", type: "intent", text: "Find why login fails after token refresh." },
+      { id: "fact_1", type: "fact", text: "Login fails after refresh." },
+      { id: "tool_result_1", type: "tool_result", text: "Token clears before session save." }
+    ],
+    edges: [
+      { from: "fact_1", to: "intent_1", type: "supports" },
+      { from: "tool_result_1", to: "fact_1", type: "explains" }
+    ]
+  }
+};
+```
+
+## What goes into context
+
+Traditional:
+
+```txt
+messages[] -> model
+```
+
+StateWeave:
+
+```txt
+GraphFrame + StateGraph -> serialized prompt -> model
+```
+
+## What comes out
+
+Traditional:
+
+```txt
+assistant text or tool call
+```
+
+StateWeave:
+
+```json
+{
+  "ops": [
+    {
+      "op": "add_node",
+      "node": {
+        "id": "fact_token_order",
+        "type": "fact",
+        "text": "The refresh token is cleared before session save completes.",
+        "status": "active"
+      }
+    },
+    { "op": "final", "answer": "The bug is token clearing before session persistence." }
+  ]
+}
+```
+
+The runtime unit is not a continuation of a chat. It is a state transition.

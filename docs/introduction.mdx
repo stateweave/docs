@@ -1,0 +1,42 @@
+---
+title: Introduction
+description: StateWeave is a low-level SDK primitive for agent state.
+---
+
+StateWeave replaces the usual transcript-shaped runtime primitive with a graph-shaped one.
+
+```txt
+GraphFrame -> model -> GraphOps -> updated StateGraph
+```
+
+The model is still a normal transformer. The difference is what the SDK treats as state:
+
+- traditional SDKs pass a list of messages
+- StateWeave passes a structured frame and graph
+- the model returns operations that mutate the graph
+
+StateWeave is intentionally low-level. You bring the model adapter, tools, storage, UI, and product behavior.
+
+## What this unlocks
+
+- visible working memory
+- inspectable context
+- tool results as graph nodes
+- decisions and constraints as first-class state
+- graph visualization of how an agent got somewhere
+
+## Try the CLI
+
+```bash
+pnpm install
+pnpm cli
+```
+
+Then type one task:
+
+```txt
+stateweave › Hi my name is Radi.
+stateweave › What's my name?
+```
+
+The CLI keeps short-term graph memory during the session and shows what goes into the model and what comes out.

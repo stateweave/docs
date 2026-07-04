@@ -1,0 +1,33 @@
+---
+title: Deploy docs
+description: Build the Mintlify docs export into a production container.
+---
+
+StateWeave includes a production docs container that exports the Mintlify docs at build time and serves the static output.
+
+```bash
+docker build -t stateweave-docs .
+docker run --rm -p 3000:3000 stateweave-docs
+```
+
+Open:
+
+```txt
+http://localhost:3000/introduction
+```
+
+## Compose
+
+```bash
+docker compose up --build
+```
+
+The compose service:
+
+- runs as the non-root `node` user
+- drops Linux capabilities
+- enables `no-new-privileges`
+- uses a read-only filesystem
+- serves on internal port `3000`
+
+This is the compose target intended for Dokploy.

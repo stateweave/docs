@@ -1,0 +1,30 @@
+---
+title: Model interface
+description: The provider adapter contract.
+---
+
+```ts
+export type Model = {
+  complete(input: ModelInput): Promise<ModelOutput>;
+  stream(input: ModelInput): AsyncIterable<ModelToken>;
+};
+```
+
+```ts
+export type ModelInput = {
+  prompt: string;
+  frame?: GraphFrame;
+  mode?: "graph_ops" | "text";
+  parameters?: ModelParameters;
+  signal?: AbortSignal;
+};
+```
+
+```ts
+export type ModelToken = {
+  type: "token";
+  token: string;
+};
+```
+
+StateWeave passes a serialized `GraphFrame` as `prompt` and the structured frame as `frame`. Provider adapters should stay thin and avoid leaking provider-specific concepts into the SDK surface.

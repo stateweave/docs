@@ -1,0 +1,38 @@
+---
+title: Visualize the graph
+description: Render a StateGraph as Mermaid for Obsidian-style visualization.
+---
+
+StateWeave graph state can be visualized as nodes and edges.
+
+```ts
+import { graphToMermaid } from "stateweave";
+
+const mermaid = graphToMermaid(result.graph);
+console.log(mermaid);
+```
+
+Example output:
+
+```mermaid
+flowchart LR
+  intent_1["intent_1<br/>intent: Find why login fails"]
+  fact_1["fact_1<br/>fact: Login fails after refresh"]
+  tool_result_1["tool_result_1<br/>tool_result: Token clears before session save"]
+  fact_1 -- "supports" --> intent_1
+  tool_result_1 -- "explains" --> fact_1
+```
+
+In the CLI:
+
+```bash
+pnpm cli "Find why login fails after token refresh." --graph
+```
+
+Or toggle it interactively:
+
+```txt
+/graph
+```
+
+This keeps visualization dependency-free. A future UI can render the same `StateGraph` with any graph library.

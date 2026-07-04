@@ -1,0 +1,49 @@
+---
+title: Add tools
+description: Define Zod-validated tools and expose them to the graph runtime.
+---
+
+A StateWeave tool is a small object with a name, description, schema, and executor.
+
+```ts
+import { z } from "zod";
+import type { Tool } from "stateweave";
+
+const readFileTool: Tool = {
+  name: "read_file",
+  description: "Read a source file by path.",
+  schema: z.object({ path: z.string() }),
+  async execute(args) {
+    const { path } = z.object({ path: z.string() }).parse(args);
+    return await readFile(path, "utf8");
+  }
+};
+```
+
+Pass tools to the agent.
+
+```ts
+const agent = new StateWeaveAgent({
+  model,
+  tools: [readFileTool],
+  maxSteps: 5
+});
+```
+
+When the model emits a tool operation:
+
+```json
+{
+  "op": "call_tool",
+  "tool": "read_file",
+  "args": { "path": "auth.ts" }
+}
+```
+
+StateWeave validates the args, executes the tool, and inserts the result as a `tool_result` node.
+
+```txt
+tool_call -> tool_result -> next GraphFrame
+```
+
+The next model step sees the tool result as graph state, not as an opaque transcript line.

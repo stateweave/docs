@@ -1,0 +1,67 @@
+---
+title: Quickstart
+description: Create a StateWeave agent, connect a model, add tools, and run one input.
+---
+
+## Install
+
+```bash
+pnpm install
+```
+
+## Run the demo CLI
+
+```bash
+pnpm cli "Find why login fails after token refresh. Login fails after refresh. Do not rewrite the auth system."
+```
+
+Add comparison and graph output:
+
+```bash
+pnpm cli "Find why login fails after token refresh. Login fails after refresh." --compare --graph
+```
+
+## Use the SDK
+
+```ts
+import { StateWeaveAgent, mockTools, createModelFromEnv } from "stateweave";
+
+const agent = new StateWeaveAgent({
+  model: createModelFromEnv(),
+  tools: mockTools,
+  maxSteps: 5
+});
+
+const result = await agent.run(
+  "Find why login fails after token refresh. Login fails after refresh. Do not rewrite the auth system."
+);
+
+console.log(result.finalAnswer);
+console.log(result.graph.nodes);
+```
+
+## Stream state
+
+```ts
+for await (const event of agent.stream("Hi my name is Radi.")) {
+  if (event.type === "frame") console.log(event.phase, event.frame);
+  if (event.type === "token") process.stdout.write(event.token);
+  if (event.type === "ops") console.log(event.ops);
+}
+```
+
+## Keep short-term memory
+
+Pass the latest `GraphFrame` back into the next run.
+
+```ts
+let frame;
+
+for await (const event of agent.stream("Hi my name is Radi.", { frame })) {
+  if (event.type === "frame" && event.phase === "after") frame = event.frame;
+}
+
+for await (const event of agent.stream("What's my name?", { frame })) {
+  if (event.type === "frame" && event.phase === "after") frame = event.frame;
+}
+```

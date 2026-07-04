@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+node_modules
+dist
+coverage
+src/traces/*.json
+traces/*.json
+docs/export.zip
+*.log
+.DS_Store

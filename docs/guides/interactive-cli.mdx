@@ -1,0 +1,43 @@
+---
+title: Interactive CLI
+description: Inspect StateWeave inputs, outputs, graph ops, and short-term memory.
+---
+
+Run the CLI:
+
+```bash
+pnpm cli
+```
+
+Then type one input at a time.
+
+```txt
+stateweave › Hi my name is Radi.
+stateweave › What's my name?
+```
+
+The CLI keeps short-term memory by carrying the latest `GraphFrame` between turns.
+
+## Commands
+
+```txt
+/prompt   toggle exact prompt passed to the provider adapter
+/compare  toggle traditional messages comparison
+/graph    toggle Mermaid graph output
+/reset    clear short-term graph memory
+/full     show full GraphFrame JSON
+/compact  show compact graph view
+/exit     quit
+```
+
+## One-shot examples
+
+```bash
+pnpm cli "Find why login fails after token refresh. Login fails after refresh." --compare
+```
+
+```bash
+pnpm cli "Hi my name is Radi." --graph --prompt
+```
+
+Use this CLI as the minimal demo for what enters the model and what comes back.

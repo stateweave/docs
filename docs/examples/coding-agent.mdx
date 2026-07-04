@@ -1,0 +1,38 @@
+---
+title: Coding agent example
+description: A tiny coding-agent loop using StateWeave.
+---
+
+```ts
+import { StateWeaveAgent, AnthropicModel, mockTools } from "stateweave";
+
+const model = new AnthropicModel({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+  model: "claude-3-5-sonnet-latest",
+  maxTokens: 1024,
+  temperature: 0
+});
+
+const agent = new StateWeaveAgent({
+  model,
+  tools: mockTools,
+  maxSteps: 5
+});
+
+const result = await agent.run(
+  "Find why login fails after token refresh. Login fails after refresh. Do not rewrite the auth system."
+);
+
+console.log(result.finalAnswer);
+console.log(result.graph);
+```
+
+The same loop can be streamed:
+
+```ts
+for await (const event of agent.stream("Diagnose the API response shape mismatch.")) {
+  if (event.type === "frame") console.log(event.frame);
+  if (event.type === "ops") console.log(event.ops);
+  if (event.type === "final") console.log(event.result.finalAnswer);
+}
+```

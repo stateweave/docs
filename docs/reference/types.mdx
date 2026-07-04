@@ -1,0 +1,54 @@
+---
+title: Core types
+description: The core StateWeave state and operation types.
+---
+
+## GraphFrame
+
+```ts
+export type GraphFrame = {
+  frame: {
+    objective: string;
+    currentFocus: string;
+    nextExpectedOutput: string;
+    activeConstraints: string[];
+    availableActions: string[];
+  };
+  graph: StateGraph;
+};
+```
+
+## StateGraph
+
+```ts
+export type StateGraph = {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+};
+```
+
+## GraphNode
+
+```ts
+export type GraphNode = {
+  id: string;
+  type: NodeType;
+  text: string;
+  data?: Record<string, unknown>;
+  confidence?: number;
+  status?: "active" | "resolved" | "rejected" | "stale";
+  createdAt: string;
+};
+```
+
+## GraphOp
+
+```ts
+export type GraphOp =
+  | { op: "add_node"; node: Omit<GraphNode, "createdAt"> }
+  | { op: "add_edge"; from: string; to: string; type: EdgeType }
+  | { op: "update_node"; id: string; patch: Partial<GraphNode> }
+  | { op: "focus"; currentFocus: string }
+  | { op: "call_tool"; tool: string; args: Record<string, unknown> }
+  | { op: "final"; answer: string };
+```
