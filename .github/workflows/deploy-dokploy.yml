@@ -1,0 +1,41 @@
+name: Deploy Dokploy
+
+on:
+  push:
+    branches: [main, uat, development]
+
+permissions:
+  contents: read
+
+env:
+  PRODUCTION_COMPOSE_ID: M_T3CeKiJnDzgPtcnD7rB
+  UAT_COMPOSE_ID: ptbAUbt6PaUfMkQn4jI-M
+  DEVELOPMENT_COMPOSE_ID: 7QMbBBKw72UIYE89y0CUv
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Select Dokploy compose
+        id: compose
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            main) echo "id=${PRODUCTION_COMPOSE_ID}" >> "$GITHUB_OUTPUT" ;;
+            uat) echo "id=${UAT_COMPOSE_ID}" >> "$GITHUB_OUTPUT" ;;
+            development) echo "id=${DEVELOPMENT_COMPOSE_ID}" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unsupported branch ${GITHUB_REF_NAME}" >&2; exit 1 ;;
+          esac
+      - name: Queue Dokploy deployment
+        env:
+          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+          COMPOSE_ID: ${{ steps.compose.outputs.id }}
+        run: |
+          test -n "$DOKPLOY_URL"
+          test -n "$DOKPLOY_API_KEY"
+          curl --fail --show-error --silent \
+            --request POST \
+            --header "content-type: application/json" \
+            --header "x-api-key: ${DOKPLOY_API_KEY}" \
+            --data "{\"json\":{\"composeId\":\"${COMPOSE_ID}\"}}" \
+            "${DOKPLOY_URL%/}/api/trpc/compose.deploy"
