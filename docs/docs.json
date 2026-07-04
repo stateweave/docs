@@ -8,26 +8,35 @@
     "dark": "#6d28d9"
   },
   "navigation": {
-    "groups": [
+    "tabs": [
       {
-        "group": "Get started",
-        "pages": ["introduction", "quickstart"]
+        "tab": "TypeScript",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Concepts",
+            "pages": ["concepts/messages-vs-stateweave", "concepts/graphframe", "concepts/graphops", "concepts/traces"]
+          },
+          {
+            "group": "Guides",
+            "pages": ["guides/connect-an-llm", "guides/add-tools", "guides/interactive-cli", "guides/visualize-graph", "guides/deploy-docs"]
+          },
+          {
+            "group": "Examples",
+            "pages": ["examples/coding-agent"]
+          },
+          {
+            "group": "Reference",
+            "pages": ["reference/model", "reference/tool", "reference/types"]
+          }
+        ]
       },
       {
-        "group": "Concepts",
-        "pages": ["concepts/messages-vs-stateweave", "concepts/graphframe", "concepts/graphops", "concepts/traces"]
-      },
-      {
-        "group": "Guides",
-        "pages": ["guides/connect-an-llm", "guides/add-tools", "guides/interactive-cli", "guides/visualize-graph", "guides/deploy-docs"]
-      },
-      {
-        "group": "Examples",
-        "pages": ["examples/coding-agent"]
-      },
-      {
-        "group": "Reference",
-        "pages": ["reference/model", "reference/tool", "reference/types"]
+        "tab": "Python",
+        "pages": ["python/tbd"]
       }
     ]
   }
