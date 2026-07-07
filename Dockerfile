@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:22-bookworm-slim AS docs-export
+FROM node:26-bookworm-slim AS docs-export
 
 WORKDIR /app/docs
 RUN apt-get update \
@@ -12,7 +12,7 @@ RUN npx --yes mintlify@4.2.667 export --output /tmp/stateweave-docs.zip \
   && unzip -q /tmp/stateweave-docs.zip -d /export \
   && sed -i '/openInBrowser(url);/d' /export/serve.js
 
-FROM node:22-alpine AS runtime
+FROM node:26-alpine AS runtime
 
 ENV NODE_ENV=production
 ENV PORT=3000
