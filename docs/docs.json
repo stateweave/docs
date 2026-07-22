@@ -18,7 +18,7 @@
           },
           {
             "group": "Concepts",
-            "pages": ["concepts/messages-vs-stateweave", "concepts/graphframe", "concepts/graphops", "concepts/traces"]
+            "pages": ["concepts/messages-vs-stateweave", "concepts/agent-state", "concepts/agent-loop", "concepts/traces"]
           },
           {
             "group": "Guides",

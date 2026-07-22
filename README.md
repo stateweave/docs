@@ -4,17 +4,13 @@
 
 This repo powers [StateWeave.dev](https://stateweave.dev), the documentation site for StateWeave.
 
-StateWeave is a low-level SDK primitive for agent state:
+StateWeave is a low-level TypeScript SDK for persistent agents with immutable causal graph state:
 
 ```txt
-GraphFrame -> model -> GraphOps -> StateGraph
+immutable causal graph → bounded working context → ordinary model action → causal graph
 ```
 
-The TypeScript SDK lives in:
-
-```txt
-https://github.com/stateweave/sdk-typescript
-```
+The SDK lives at <https://github.com/stateweave/sdk-typescript>.
 
 ## Environments
 
@@ -24,16 +20,12 @@ https://github.com/stateweave/sdk-typescript
 | `uat` | uat | https://uat.stateweave.dev |
 | `development` | development | https://dev.stateweave.dev |
 
-Deployments are synced through GitHub Actions to Dokploy.
-
 ## Local preview
 
 ```bash
 pnpm install
 pnpm docs:dev
 ```
-
-Open the Mintlify preview URL printed by the command.
 
 ## Production container
 
@@ -42,28 +34,11 @@ docker build -t stateweave-docs .
 docker compose up --build
 ```
 
-The container exports Mintlify docs at build time and serves static output on port `3000`.
-
-## Structure
-
-```txt
-docs/
-  introduction.mdx
-  quickstart.mdx
-  concepts/
-  guides/
-  examples/
-  reference/
-  docs.json
-```
-
 ## Contributing
 
 - Keep docs practical and SDK-focused.
-- Prefer short pages with runnable TypeScript examples.
+- Use the single public `Agent` class in examples.
+- Treat `AgentState` as the public persistence format.
 - Do not commit API keys, `.env`, private prompts, or generated exports.
-- If SDK behavior changes, update the relevant docs page in the same PR or link the SDK PR.
-
-## Security
 
 See [`SECURITY.md`](./SECURITY.md).

@@ -1,66 +1,51 @@
 ---
 title: Connect an LLM
-description: Implement the low-level model adapter interface.
+description: Implement the provider-neutral model interface.
 ---
 
-StateWeave does not require a provider SDK. A model adapter only needs `complete` and `stream`.
+StateWeave does not require a provider SDK. A model adapter implements `complete` and `stream`.
 
 ```ts
 import type { Model } from "stateweave";
 
 export const model: Model = {
   async complete(input) {
-    let text = "";
-    for await (const token of this.stream(input)) text += token.token;
-    return { text };
+    const response = await fetch("https://provider.example.com/v1/generate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ prompt: input.prompt })
+    });
+    return { text: await response.text() };
   },
 
   async *stream(input) {
-    const response = await fetch("https://provider.example.com/v1/generate", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${process.env.PROVIDER_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "your-model",
-        prompt: input.prompt,
-        temperature: input.parameters?.temperature ?? 0
-      })
-    });
-
-    const text = await response.text();
-    yield { type: "token", token: text };
+    yield { type: "token", token: (await this.complete(input)).text };
   }
 };
 ```
 
-Then pass it to the agent.
+Then pass it to the single public agent class:
 
 ```ts
-import { StateWeaveAgent } from "stateweave";
+import { Agent } from "stateweave";
 
-const agent = new StateWeaveAgent({
-  model,
-  tools: [],
-  maxSteps: 5
-});
+const agent = new Agent({ model });
 ```
 
 ## Anthropic-compatible adapter
 
-This repo includes a thin Anthropic HTTP adapter.
-
 ```ts
-import { AnthropicModel } from "stateweave";
+import { Agent, AnthropicModel } from "stateweave";
 
 const model = new AnthropicModel({
   apiKey: process.env.ANTHROPIC_API_KEY!,
   baseUrl: "https://api.anthropic.com",
   model: "claude-3-5-sonnet-latest",
-  maxTokens: 1024,
+  maxTokens: 4096,
   temperature: 0
 });
+
+const agent = new Agent({ model });
 ```
 
-The StateWeave SDK surface remains `GraphFrame -> GraphOps -> StateGraph` even when a provider has its own wire format internally.
+Provider APIs receive the compiled causal context in `input.prompt`. Keep adapters thin; graph state and projection belong to StateWeave.

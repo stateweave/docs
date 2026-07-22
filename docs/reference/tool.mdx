@@ -1,6 +1,6 @@
 ---
 title: Tool interface
-description: The Zod-validated tool contract.
+description: The Zod-validated action contract.
 ---
 
 ```ts
@@ -14,6 +14,8 @@ export type Tool = {
 };
 ```
 
-Tool descriptions are included in `availableActions` so the model can choose valid `call_tool` operations.
+Tool descriptions are included in the system contract. The model requests one tool through a `TOOL_CALL` envelope.
 
-Tool results are inserted into the graph as `tool_result` nodes.
+StateWeave validates arguments, executes the tool, records a `tool_call` node and child `tool_result`, then extracts resource versions from path/hash/mutation metadata when available.
+
+A failed tool result remains visible to later inference and does not count as successful completion evidence.

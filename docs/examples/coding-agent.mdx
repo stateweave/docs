@@ -1,38 +1,45 @@
 ---
 title: Coding agent example
-description: A tiny coding-agent loop using StateWeave.
+description: Run a persistent coding agent with the StateWeave causal engine.
 ---
 
 ```ts
-import { StateWeaveAgent, AnthropicModel, mockTools } from "stateweave";
+import { Agent, AnthropicModel } from "stateweave";
 
 const model = new AnthropicModel({
   apiKey: process.env.ANTHROPIC_API_KEY!,
   model: "claude-3-5-sonnet-latest",
-  maxTokens: 1024,
+  maxTokens: 4096,
   temperature: 0
 });
 
-const agent = new StateWeaveAgent({
+const agent = new Agent({
   model,
-  tools: mockTools,
-  maxSteps: 5
+  maxIterations: 30,
+  maxPromptTokens: 64_000,
+  projectionTargetTokens: 16_000,
+  enforceCompletionEvidence: true,
+  traceDir: ".stateweave/traces"
 });
 
 const result = await agent.run(
-  "Find why login fails after token refresh. Login fails after refresh. Do not rewrite the auth system."
+  "Inspect the project, fix the token-refresh bug, run the focused check, and report the verified result."
 );
 
 console.log(result.finalAnswer);
-console.log(result.graph);
+console.log(result.state);
 ```
 
-The same loop can be streamed:
+The default workspace tools are available automatically.
+
+Stream engine progress when building an operator UI:
 
 ```ts
-for await (const event of agent.stream("Diagnose the API response shape mismatch.")) {
-  if (event.type === "frame") console.log(event.frame);
-  if (event.type === "ops") console.log(event.ops);
+for await (const event of agent.streamEvents("Add a regression test.")) {
+  if (event.type === "progress") {
+    console.log(event.progress.phase, event.progress.detail);
+    if (event.progress.graph) renderGraph(event.progress.graph);
+  }
   if (event.type === "final") console.log(event.result.finalAnswer);
 }
 ```
