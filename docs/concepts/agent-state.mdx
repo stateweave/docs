@@ -1,0 +1,51 @@
+---
+title: AgentState
+description: The lossless immutable state owned by a StateWeave Agent.
+---
+
+`AgentState` is the persistence format for the public `Agent`.
+
+```ts
+type AgentState = {
+  version: 1;
+  nodes: Array<{
+    id: string;
+    kind: "system" | "goal" | "inference" | "tool_call" | "tool_result" |
+      "resource" | "verification" | "answer" | "protocol_error";
+    parents: string[];
+    payload: unknown;
+    createdAt: string;
+    sequence: number;
+    resourceKey?: string;
+  }>;
+  frontier: string[];
+};
+```
+
+## Identity
+
+Node ids are SHA-256 content identities over:
+
+- node kind
+- sorted parent ids
+- payload
+- optional resource key
+
+Timestamps and insertion sequence are metadata, not identity.
+
+## Frontier
+
+The frontier identifies active graph heads. A later goal links to the previous frontier, preserving continuity across user turns.
+
+## Resource versions
+
+Nodes sharing a `resourceKey` form a version chain. The latest version receives projection priority; older versions remain addressable.
+
+## Export and import
+
+```ts
+const state = agent.getState();
+const resumed = new Agent({ model, state });
+```
+
+StateWeave validates node identity, causal parent ordering, sequence integrity, and frontier references before accepting imported state.

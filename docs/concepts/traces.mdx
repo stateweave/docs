@@ -1,35 +1,40 @@
 ---
 title: Traces
-description: Inspect every frame, prompt, token stream, and state update.
+description: Inspect compiled context, model actions, tools, retries, and token use.
 ---
 
-Each StateWeave step records a trace.
+Every model step records:
 
 ```ts
-export type TraceStep = {
+type AgentTraceStep = {
   step: number;
-  frameBefore: GraphFrame;
+  nodeIds: string[];
   prompt: string;
-  tokenEstimate: { estimatedTokens: number; messageCount: number };
-  streamedTokens: string[];
+  contextTokens: number;
   rawModelOutput: string;
-  parsedOps: GraphOp[];
-  frameAfter: GraphFrame;
+  action: "tool" | "final" | "invalid";
+  tool?: string;
+  error?: string;
 };
 ```
 
-The CLI writes traces to:
+Run metadata includes:
 
-```txt
-src/traces/
-```
+- engine version
+- tools
+- start/completion time
+- iteration and token budgets
+- model and tool calls
+- latest and cumulative input tokens
+- output tokens
 
 Use traces to answer:
 
-- what state did the model receive?
-- what prompt was generated?
-- what tokens streamed back?
-- what graph operations were accepted?
-- how did the state graph change?
+- which graph nodes did this inference read?
+- what exact context did the provider receive?
+- what action did the model return?
+- which tool ran?
+- why did the runtime retry?
+- how large was the working context?
 
-For StateWeave graph steps, `messageCount` is `0`. The primitive is graph/frame state, not a message list.
+Set `traceDir` to persist successful run results as JSON.

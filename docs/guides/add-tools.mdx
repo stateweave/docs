@@ -1,49 +1,54 @@
 ---
 title: Add tools
-description: Define Zod-validated tools and expose them to the graph runtime.
+description: Define Zod-validated tools for the StateWeave Agent.
 ---
 
-A StateWeave tool is a small object with a name, description, schema, and executor.
+A tool has a name, description, schema, and executor.
 
 ```ts
 import { z } from "zod";
 import type { Tool } from "stateweave";
 
-const readFileTool: Tool = {
-  name: "read_file",
-  description: "Read a source file by path.",
-  schema: z.object({ path: z.string() }),
+const lookup: Tool = {
+  name: "lookup_order",
+  description: "Look up one order by id.",
+  schema: z.object({ orderId: z.string() }),
   async execute(args) {
-    const { path } = z.object({ path: z.string() }).parse(args);
-    return await readFile(path, "utf8");
+    const { orderId } = z.object({ orderId: z.string() }).parse(args);
+    return database.orders.get(orderId);
   }
 };
 ```
 
-Pass tools to the agent.
+Pass custom tools to `Agent`:
 
 ```ts
-const agent = new StateWeaveAgent({
-  model,
-  tools: [readFileTool],
-  maxSteps: 5
-});
+import { Agent } from "stateweave";
+
+const agent = new Agent({ model, tools: [lookup] });
 ```
 
-When the model emits a tool operation:
-
-```json
-{
-  "op": "call_tool",
-  "tool": "read_file",
-  "args": { "path": "auth.ts" }
-}
-```
-
-StateWeave validates the args, executes the tool, and inserts the result as a `tool_result` node.
+The model requests one action:
 
 ```txt
-tool_call -> tool_result -> next GraphFrame
+TOOL_CALL {"name":"lookup_order","args":{"orderId":"ord_123"}}
 ```
 
-The next model step sees the tool result as graph state, not as an opaque transcript line.
+StateWeave validates the arguments, executes the tool, then appends:
+
+```txt
+tool_call → tool_result → resource/evidence
+```
+
+The next inference receives the relevant tool evidence through causal projection.
+
+## Default workspace tools
+
+If `tools` is omitted, `Agent` provides:
+
+- `read_file`
+- `write_file`
+- `edit_file`
+- read-only `bash_command`
+
+Pass `tools` explicitly to replace the defaults.

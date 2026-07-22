@@ -1,6 +1,6 @@
 ---
 title: Model interface
-description: The provider adapter contract.
+description: The provider adapter contract used by Agent.
 ---
 
 ```ts
@@ -13,18 +13,24 @@ export type Model = {
 ```ts
 export type ModelInput = {
   prompt: string;
-  frame?: GraphFrame;
   mode?: "graph_ops" | "text";
   parameters?: ModelParameters;
+  system?: string;
   signal?: AbortSignal;
 };
 ```
 
+The public `Agent` calls the model in text mode. `prompt` contains the compiled causal working context; `system` contains the provider-level action instruction.
+
 ```ts
-export type ModelToken = {
-  type: "token";
-  token: string;
+export type ModelOutput = {
+  text: string;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  };
 };
 ```
 
-StateWeave passes a serialized `GraphFrame` as `prompt` and the structured frame as `frame`. Provider adapters should stay thin and avoid leaking provider-specific concepts into the SDK surface.
+Usage data feeds run metrics when the provider supplies it; otherwise StateWeave estimates tokens locally.

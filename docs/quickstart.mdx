@@ -1,69 +1,59 @@
 ---
 title: TypeScript quickstart
-description: Create a StateWeave TypeScript agent, connect a model, add tools, and run one input.
+description: Create one StateWeave Agent, stream a task, and persist its causal state.
 ---
-
-This quickstart uses the StateWeave TypeScript SDK.
 
 ## Install
 
 ```bash
-pnpm install
+pnpm add stateweave@dev
 ```
 
-## Run the demo CLI
-
-```bash
-pnpm cli "Find why login fails after token refresh. Login fails after refresh. Do not rewrite the auth system."
-```
-
-Add comparison and graph output:
-
-```bash
-pnpm cli "Find why login fails after token refresh. Login fails after refresh." --compare --graph
-```
-
-## Use the SDK
+## Run an agent
 
 ```ts
-import { StateWeaveAgent, mockTools, createModelFromEnv } from "stateweave";
+import { Agent, createModelFromEnv } from "stateweave";
 
-const agent = new StateWeaveAgent({
-  model: createModelFromEnv(),
-  tools: mockTools,
-  maxSteps: 5
+const agent = new Agent({
+  model: createModelFromEnv()
 });
 
-const result = await agent.run(
-  "Find why login fails after token refresh. Login fails after refresh. Do not rewrite the auth system."
-);
+for await (const chunk of agent.stream("Create a tiny HTML todo app in ./todo")) {
+  process.stdout.write(chunk);
+}
 
-console.log(result.finalAnswer);
-console.log(result.graph.nodes);
+await agent.run("Add keyboard shortcuts.");
+console.log(agent.getState());
+console.log(agent.getGraph());
 ```
 
-## Stream state
+`Agent` includes workspace-scoped `read_file`, `write_file`, `edit_file`, and read-only `bash_command` tools by default.
+
+## Resume later
 
 ```ts
-for await (const event of agent.stream("Hi my name is Radi.")) {
-  if (event.type === "frame") console.log(event.phase, event.frame);
-  if (event.type === "token") process.stdout.write(event.token);
-  if (event.type === "ops") console.log(event.ops);
-}
+const first = await agent.run("Remember that the release window is Friday.");
+
+const resumed = new Agent({
+  model: createModelFromEnv(),
+  state: first.state
+});
+
+const second = await resumed.run("When is the release window?");
 ```
 
-## Keep short-term memory
+Imported state is validated before use.
 
-Pass the latest `GraphFrame` back into the next run.
+## Inspect the engine
 
 ```ts
-let frame;
-
-for await (const event of agent.stream("Hi my name is Radi.", { frame })) {
-  if (event.type === "frame" && event.phase === "after") frame = event.frame;
-}
-
-for await (const event of agent.stream("What's my name?", { frame })) {
-  if (event.type === "frame" && event.phase === "after") frame = event.frame;
+for await (const event of agent.streamEvents("Inspect the workspace")) {
+  if (event.type === "progress") {
+    console.log(event.progress.phase, event.progress.detail);
+    console.log(event.progress.prompt);
+    console.log(event.progress.graph);
+  }
 }
 ```
+
+Use `stream()` for answer text and `streamEvents()` only when you need engine diagnostics.

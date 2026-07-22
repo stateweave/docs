@@ -1,54 +1,73 @@
 ---
-title: Core types
-description: The core StateWeave state and operation types.
+title: Agent types
+description: Public StateWeave Agent state, result, trace, and event types.
 ---
 
-## GraphFrame
+## AgentState
 
 ```ts
-export type GraphFrame = {
-  frame: {
-    objective: string;
-    currentFocus: string;
-    nextExpectedOutput: string;
-    activeConstraints: string[];
-    availableActions: string[];
-  };
-  graph: StateGraph;
+type AgentState = {
+  version: 1;
+  nodes: CausalNode[];
+  frontier: string[];
 };
 ```
 
-## StateGraph
+## CausalNode
 
 ```ts
-export type StateGraph = {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-};
-```
-
-## GraphNode
-
-```ts
-export type GraphNode = {
+type CausalNode = {
   id: string;
-  type: NodeType;
-  text: string;
-  data?: Record<string, unknown>;
-  confidence?: number;
-  status?: "active" | "resolved" | "rejected" | "stale";
+  kind: "system" | "goal" | "inference" | "tool_call" | "tool_result" |
+    "resource" | "verification" | "answer" | "protocol_error";
+  parents: string[];
+  payload: unknown;
   createdAt: string;
+  sequence: number;
+  resourceKey?: string;
 };
 ```
 
-## GraphOp
+## AgentRunResult
 
 ```ts
-export type GraphOp =
-  | { op: "add_node"; node: Omit<GraphNode, "createdAt"> }
-  | { op: "add_edge"; from: string; to: string; type: EdgeType }
-  | { op: "update_node"; id: string; patch: Partial<GraphNode> }
-  | { op: "focus"; currentFocus: string }
-  | { op: "call_tool"; tool: string; args: Record<string, unknown> }
-  | { op: "final"; answer: string };
+type AgentRunResult = {
+  finalAnswer: string;
+  state: AgentState;
+  graph: StateGraph;
+  trace: AgentTraceStep[];
+  metadata: AgentRunMetadata;
+};
 ```
+
+## AgentProgress
+
+```ts
+type AgentProgress = {
+  iteration: number;
+  phase: "context" | "model" | "tool" | "final" | "retrying";
+  modelCalls: number;
+  toolCalls: number;
+  totalInputTokens: number;
+  outputTokens: number;
+  detail: string;
+  contextTokens?: number;
+  prompt?: string;
+  graph?: StateGraph;
+  rawModelOutput?: string;
+  action?: "tool" | "final" | "invalid";
+  tool?: string;
+  error?: string;
+};
+```
+
+## AgentStreamEvent
+
+```ts
+type AgentStreamEvent =
+  | { type: "metadata"; metadata: AgentStartMetadata }
+  | { type: "progress"; progress: AgentProgress }
+  | { type: "final"; result: AgentRunResult };
+```
+
+`GraphFrame`, `GraphOps`, and `StateGraph` remain low-level utility types. The public `Agent` memory engine uses `AgentState`.

@@ -1,0 +1,41 @@
+---
+title: Agent loop
+description: How StateWeave compiles context, executes actions, and grows causal state.
+---
+
+For every user turn, `Agent` runs this loop:
+
+1. append the goal to the previous frontier
+2. compile a bounded causal working context
+3. call the model
+4. parse one `TOOL_CALL` or `FINAL` envelope
+5. record the action with the exact compiled node ids as parents
+6. execute and record tool evidence when needed
+7. repeat until an answer is accepted
+
+## Tool action
+
+```txt
+TOOL_CALL {"name":"edit_file","args":{"file_path":"src/app.ts","old_string":"old","new_string":"new"}}
+```
+
+Arguments are schema-validated before execution.
+
+## Final action
+
+```txt
+FINAL: Updated the parser and verified the focused check.
+```
+
+When completion evidence is enabled, unsupported coding-task finals are rejected and recorded as protocol errors. The model must continue with another tool action.
+
+## Transactional state
+
+A stateful `Agent` serializes concurrent turns in invocation order. Successful runs commit. Failed or aborted runs expose diagnostic state on `AgentRunError` but do not replace the last committed state.
+
+## Limits
+
+- `maxIterations`: model/tool loop limit for one turn
+- `maxPromptTokens`: hard model-input ceiling
+- `projectionTargetTokens`: preferred bounded working context
+- `maxNoProgressIterations`: optional non-convergence guard

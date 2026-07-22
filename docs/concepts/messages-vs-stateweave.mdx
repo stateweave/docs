@@ -1,81 +1,58 @@
 ---
 title: Messages vs StateWeave
-description: Compare transcript context with graph/frame context.
+description: Compare transcript memory with immutable causal graph state.
 ---
 
-Most agent SDKs use a transcript as the runtime state.
+Most agent runtimes store a transcript:
 
-```ts
-const messages = [
-  { role: "system", content: "You are a coding agent." },
-  { role: "user", content: "Login fails after token refresh." },
-  { role: "tool", content: "auth.ts summary: token clears before session save." }
-];
+```txt
+system → user → assistant → tool → assistant
 ```
 
-StateWeave uses a graph frame.
+Each call replays or summarizes that sequence.
+
+StateWeave stores causal state:
+
+```txt
+system ─┐
+        ├→ goal → tool_call → tool_result → resource
+frontier┘                              └→ answer
+```
+
+## Stored truth
+
+Traditional runtime:
+
+```txt
+messages[]
+```
+
+StateWeave:
 
 ```ts
-const frame = {
-  frame: {
-    objective: "Find why login fails after token refresh.",
-    currentFocus: "Use existing graph state and latest input.",
-    activeConstraints: ["Do not rewrite the auth system."],
-    availableActions: ["add_node", "add_edge", "call_tool", "final"]
-  },
-  graph: {
-    nodes: [
-      { id: "intent_1", type: "intent", text: "Find why login fails after token refresh." },
-      { id: "fact_1", type: "fact", text: "Login fails after refresh." },
-      { id: "tool_result_1", type: "tool_result", text: "Token clears before session save." }
-    ],
-    edges: [
-      { from: "fact_1", to: "intent_1", type: "supports" },
-      { from: "tool_result_1", to: "fact_1", type: "explains" }
-    ]
-  }
+type AgentState = {
+  version: 1;
+  nodes: CausalNode[];
+  frontier: string[];
 };
 ```
 
-## What goes into context
+## Model input
 
-Traditional:
+StateWeave compiles a bounded working context from:
 
-```txt
-messages[] -> model
-```
+- the active frontier
+- the current goal and system contract
+- current resource heads
+- recent authoritative evidence
+- bounded operational ancestry
+- relevant older nodes
+- a deterministic whole-graph digest
 
-StateWeave:
+The full source graph remains append-only. Projection can omit or supersede details without deleting them.
 
-```txt
-GraphFrame + StateGraph -> serialized prompt -> model
-```
+## Model output
 
-## What comes out
+The model returns one ordinary tool action or a final answer. StateWeave automatically records the action's exact compiled read set as causal parents.
 
-Traditional:
-
-```txt
-assistant text or tool call
-```
-
-StateWeave:
-
-```json
-{
-  "ops": [
-    {
-      "op": "add_node",
-      "node": {
-        "id": "fact_token_order",
-        "type": "fact",
-        "text": "The refresh token is cleared before session save completes.",
-        "status": "active"
-      }
-    },
-    { "op": "final", "answer": "The bug is token clearing before session persistence." }
-  ]
-}
-```
-
-The runtime unit is not a continuation of a chat. It is a state transition.
+This keeps graph structure deterministic and prevents graph-authoring syntax from becoming a second agent protocol.
