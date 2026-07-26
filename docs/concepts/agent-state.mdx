@@ -10,8 +10,8 @@ type AgentState = {
   version: 1;
   nodes: Array<{
     id: string;
-    kind: "system" | "goal" | "inference" | "tool_call" | "tool_result" |
-      "resource" | "verification" | "answer" | "protocol_error";
+    kind: "system" | "goal" | "inference" | "semantic" | "tool_call" |
+      "tool_result" | "resource" | "verification" | "answer" | "protocol_error";
     parents: string[];
     payload: unknown;
     createdAt: string;
@@ -37,9 +37,26 @@ Timestamps and insertion sequence are metadata, not identity.
 
 The frontier identifies active graph heads. A later goal links to the previous frontier, preserving continuity across user turns.
 
+## Semantic node types
+
+The causal kind `semantic` carries configurable domain meaning without changing the graph protocol. StateWeave includes `memory`, `preference`, `wisdom`, and `artifact` types by default.
+
+```ts
+const agent = new Agent({
+  model,
+  nodeTypes: [
+    { name: "preference", description: "A stable user preference." },
+    { name: "pros-cons", description: "A durable decision assessment." }
+  ],
+  allowDynamicNodeTypes: true
+});
+```
+
+A semantic payload has a stable `type`, `key`, and arbitrary JSON `content`. The agent may preserve it inside the same `TOOL_CALL` or `FINAL` response, so semantic state does not require a second model call. Type names and payload content participate in lexical retrieval; the type also influences ranking.
+
 ## Resource versions
 
-Nodes sharing a `resourceKey` form a version chain. The latest version receives projection priority; older versions remain addressable.
+Nodes sharing a `resourceKey` form a version chain. Semantic nodes use `semantic:<type>:<key>`, so writing the same type and key makes the newest immutable value authoritative while preserving history.
 
 ## Export and import
 
