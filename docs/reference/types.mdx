@@ -18,8 +18,8 @@ type AgentState = {
 ```ts
 type CausalNode = {
   id: string;
-  kind: "system" | "goal" | "inference" | "tool_call" | "tool_result" |
-    "resource" | "verification" | "answer" | "protocol_error";
+  kind: "system" | "goal" | "inference" | "semantic" | "tool_call" |
+    "tool_result" | "resource" | "verification" | "answer" | "protocol_error";
   parents: string[];
   payload: unknown;
   createdAt: string;
@@ -27,6 +27,17 @@ type CausalNode = {
   resourceKey?: string;
 };
 ```
+
+## SemanticNodeType
+
+```ts
+type SemanticNodeType = {
+  name: string;
+  description: string;
+};
+```
+
+Configure semantic types with `AgentArgs.nodeTypes`. Built-ins are `memory`, `preference`, `wisdom`, and `artifact`. `allowDynamicNodeTypes` permits the agent to create a bounded lowercase type when configured types do not fit.
 
 ## AgentRunResult
 

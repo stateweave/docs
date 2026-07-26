@@ -44,6 +44,21 @@ const second = await resumed.run("When is the release window?");
 
 Imported state is validated before use.
 
+## Configure semantic memory
+
+```ts
+const agent = new Agent({
+  model: createModelFromEnv(),
+  nodeTypes: [
+    { name: "preference", description: "A stable user preference." },
+    { name: "wisdom", description: "A reusable evidence-supported lesson." },
+    { name: "artifact", description: "A durable output or artifact reference." }
+  ]
+});
+```
+
+The defaults also include `memory`. Set `allowDynamicNodeTypes: true` if the agent may invent a bounded semantic type when none of the configured types fits.
+
 ## Inspect the engine
 
 ```ts
