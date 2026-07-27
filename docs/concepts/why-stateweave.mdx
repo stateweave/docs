@@ -1,0 +1,79 @@
+---
+title: Why StateWeave
+description: Why durable agent state and model context should be different objects.
+---
+
+## State is not context
+
+A transcript answers one question well: **what was said next?**
+
+An agent needs harder answers:
+
+- Which evidence supported this action?
+- Which file version is current?
+- Which preference superseded an older one?
+- What did this inference actually read?
+- What can leave the prompt without leaving history?
+
+A chronological array can contain those facts, but it cannot express them directly. Meaning has to be recovered from position and prose.
+
+## The transcript tradeoff
+
+A conventional loop stores:
+
+```txt
+system → user → assistant → tool → assistant → user → …
+```
+
+To fit the next call, it usually chooses one of three policies:
+
+| Policy | Benefit | Cost |
+| --- | --- | --- |
+| Replay | Exact recent text | Context grows without bound |
+| Truncate | Predictable size | Old evidence disappears |
+| Summarize | Compact history | Generated prose replaces source structure |
+
+These are reasonable context policies. They are weak definitions of durable state.
+
+## The graph separation
+
+StateWeave stores:
+
+```txt
+system ───────┐
+              ├─ goal ─ inference ─ tool_call ─ tool_result ─ resource
+prior frontier┘                                      └─────── answer
+```
+
+Parents mean direct dependency. `resourceKey` creates immutable version chains. The frontier marks current heads. A later turn begins from those heads rather than from the last line of a transcript.
+
+The next prompt is compiled from that graph. It includes required roots and heads, recent authoritative evidence, bounded operational ancestry, relevant older nodes, and a deterministic digest of the whole graph.
+
+<div className="sw-invariant">
+  <b>Separation</b>
+  <p>Persistence can remain lossless while model context remains bounded.</p>
+</div>
+
+## Why exact read-set parents matter
+
+Suppose an agent has 200 graph nodes, but an inference receives 18. The runtime records those 18 node IDs as the inference’s parents.
+
+That gives causality a testable meaning: not “these nodes seem related,” but “these are the nodes the runtime rendered into this model call.”
+
+No second classification call is needed. No model-generated edge syntax is trusted. The lineage falls out of prompt construction.
+
+## Supersession without deletion
+
+A file, preference, or durable lesson can change. StateWeave appends the new value and links it to the previous value through a stable resource key.
+
+```txt
+preference:response-style:1 → preference:response-style:2
+```
+
+Projection treats the newest head as authoritative. Both versions remain in `AgentState`.
+
+## The boundaries of the claim
+
+StateWeave does not make a model infallible. A graph can preserve bad evidence. Relevance ranking can omit useful history. A provider still processes the compiled prompt. Persistence and access control remain application responsibilities.
+
+The primitive improves state identity, provenance, boundedness, and inspectability. Product quality still depends on the model, tools, policies, and evidence you connect to it.

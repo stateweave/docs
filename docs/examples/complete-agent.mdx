@@ -1,0 +1,164 @@
+---
+title: Complete agent
+description: A small server-owned TypeScript agent with custom memory, tools, persistence, and progress.
+---
+
+## A complete integration
+
+This example keeps one user’s `AgentState` in a store, exposes one narrow tool, emits progress, and commits only a successful result.
+
+```ts
+import { z } from "zod";
+import {
+  Agent,
+  AnthropicModel,
+  AgentRunError,
+  type AgentProgress,
+  type AgentState,
+  type Tool
+} from "stateweave";
+
+const statusArgs = z.object({ service: z.string().min(1).max(80) });
+
+const statusStore = new Map([
+  ["api", { ok: true, service: "api", status: "operational", version: "2026.07" }]
+]);
+
+const lookupService: Tool = {
+  name: "lookup_service",
+  description: "Return the current status of one known service.",
+  schema: statusArgs,
+  async execute(raw) {
+    const { service } = statusArgs.parse(raw);
+    return statusStore.get(service) ?? {
+      ok: false,
+      service,
+      error: "unknown_service"
+    };
+  }
+};
+
+const model = new AnthropicModel({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+  model: process.env.ANTHROPIC_MODEL!,
+  maxTokens: 4096,
+  temperature: 0
+});
+
+type Session = { revision: number; state?: AgentState };
+
+const rows = new Map<string, Session>();
+const sessions = {
+  async load(id: string): Promise<Session> {
+    return structuredClone(rows.get(id) ?? { revision: 0 });
+  },
+  async compareAndSet(id: string, expected: number, next: Session) {
+    const current = rows.get(id)?.revision ?? 0;
+    if (current !== expected) throw new Error("session_conflict");
+    rows.set(id, structuredClone(next));
+  }
+};
+
+const diagnostics = {
+  async write(value: unknown) {
+    console.error(JSON.stringify(value));
+  }
+};
+
+export async function answer(
+  sessionId: string,
+  input: string,
+  signal: AbortSignal,
+  onProgress: (progress: AgentProgress) => void
+) {
+  const session: Session = await sessions.load(sessionId);
+
+  const agent = new Agent({
+    model,
+    tools: [lookupService],
+    state: session.state,
+    systemPrompt: "Answer operational questions from tool evidence. State uncertainty plainly.",
+    nodeTypes: [
+      { name: "preference", description: "A stable response or workflow preference." },
+      { name: "decision", description: "A durable operational decision and rationale." }
+    ],
+    allowDynamicNodeTypes: false,
+    enforceCompletionEvidence: false,
+    maxIterations: 12,
+    projectionTargetTokens: 16_000,
+    maxPromptTokens: 64_000
+  });
+
+  try {
+    const result = await agent.run(input, { signal, onProgress });
+
+    await sessions.compareAndSet(sessionId, session.revision, {
+      revision: session.revision + 1,
+      state: result.state
+    });
+
+    return {
+      answer: result.finalAnswer,
+      state: result.state,
+      graph: result.graph,
+      run: result.metadata
+    };
+  } catch (error) {
+    if (error instanceof AgentRunError) {
+      await diagnostics.write({
+        sessionId,
+        trace: error.trace,
+        metrics: error.metrics
+      });
+    }
+    throw error;
+  }
+}
+```
+
+## Why each choice exists
+
+- **One server-owned model.** Provider credentials and tool authority never enter browser state.
+- **Explicit tools.** Omitting `tools` would enable the default workspace tools; this product needs only service lookup.
+- **Product vocabulary.** `decision` is useful here, so it is configured instead of allowing arbitrary semantic types.
+- **Completion evidence off.** The built-in evidence policy targets coding work. Operational answers use product-specific policy and tool evidence.
+- **Compare-and-set persistence.** Two replicas cannot silently overwrite one session version.
+- **Diagnostic failure path.** Failed work is inspectable but does not become canonical session state.
+
+## Coding-agent variant
+
+For workspace work, opt into scoped defaults and completion evidence:
+
+```ts
+import { Agent, createFileSystemTools } from "stateweave";
+
+const coding = new Agent({
+  model,
+  tools: createFileSystemTools({ rootDir: sandboxPath }),
+  enforceCompletionEvidence: true,
+  maxIterations: 30,
+  traceDir: ".stateweave/traces"
+});
+
+const result = await coding.run(
+  "Inspect the parser, fix the failing test, run the focused check, and report the evidence."
+);
+```
+
+Put `sandboxPath` inside a real process and filesystem sandbox when inputs are untrusted. StateWeave’s path checks are defense in depth, not tenant isolation.
+
+## Test the causal contract
+
+A focused integration test should assert more than the answer:
+
+```ts
+expect(result.metadata.engine).toBe("causal-weave-v3");
+expect(result.state.nodes.some((node) => node.kind === "goal")).toBe(true);
+expect(result.state.nodes.some((node) => node.kind === "answer")).toBe(true);
+expect(result.state.frontier.length).toBeGreaterThan(0);
+
+const answer = result.state.nodes.findLast((node) => node.kind === "answer")!;
+expect(answer.parents.length).toBeGreaterThan(0);
+```
+
+Use `MockModel` for deterministic unit tests and one real provider smoke test for action formatting, usage metadata, and semantic-node behavior.

@@ -1,54 +1,166 @@
 ---
-title: Core types
-description: The core StateWeave state and operation types.
+title: Types and exports
+description: Public state, model, tool, stream, graph-view, and low-level utility exports.
 ---
 
-## GraphFrame
+## Public TypeScript surface
+
+Import public values and types from the package root.
 
 ```ts
-export type GraphFrame = {
-  frame: {
-    objective: string;
-    currentFocus: string;
-    nextExpectedOutput: string;
-    activeConstraints: string[];
-    availableActions: string[];
-  };
-  graph: StateGraph;
+import { Agent, AnthropicModel, type AgentState } from "stateweave";
+```
+
+## State
+
+```ts
+type AgentState = {
+  version: 1;
+  nodes: Array<{
+    id: string;
+    kind:
+      | "system" | "goal" | "inference" | "semantic"
+      | "tool_call" | "tool_result" | "resource"
+      | "verification" | "answer" | "protocol_error";
+    parents: string[];
+    payload: unknown;
+    createdAt: string;
+    sequence: number;
+    resourceKey?: string;
+  }>;
+  frontier: string[];
 };
 ```
 
-## StateGraph
+`AgentState` and its structural node shape are public through the `AgentState` alias; the internal causal node aliases are not separate package-root exports.
+
+## Semantic configuration
 
 ```ts
-export type StateGraph = {
+type SemanticNodeType = {
+  name: string;
+  description: string;
+};
+
+// payload shape when a causal node has kind: "semantic"
+type SemanticPayload = {
+  type: string;
+  key: string;
+  content: unknown;
+};
+```
+
+`SemanticNodeType` is exported. `SemanticPayload` above documents the runtime payload shape; it is not a separate package-root type. The default configured types are memory, preference, wisdom, and artifact.
+
+## Model
+
+```ts
+type ModelInput = {
+  prompt: string;
+  frame?: GraphFrame;
+  mode?: "graph_ops" | "text";
+  parameters?: ModelParameters;
+  system?: string;
+  signal?: AbortSignal;
+};
+
+type ModelOutput = {
+  text: string;
+  usage?: ModelUsage;
+};
+
+type Model = {
+  complete(input: ModelInput): Promise<ModelOutput>;
+  stream(input: ModelInput): AsyncIterable<ModelToken>;
+};
+```
+
+The public `Agent` calls `complete()` with `mode: "text"`, a compiled `prompt`, and no `frame`. The optional frame and `graph_ops` mode remain for the low-level compatibility utilities.
+
+Primary adapter exports:
+
+- `MockModel`
+- `AnthropicModel`
+- `anthropicConfigFromEnv()`
+- `createModelFromEnv()`
+- `collectModelText()`
+- `estimateStateWeaveTokens()`
+
+## Tool
+
+```ts
+type Tool = {
+  name: string;
+  description: string;
+  schema: z.ZodSchema;
+  execute(args: unknown): Promise<unknown>;
+};
+```
+
+Tool helpers:
+
+- `createDefaultTools()`
+- `createFileSystemTools()`
+- `describeTools()`
+- `mockTools`
+- `toolMap()`
+
+## Progress and traces
+
+```ts
+type AgentProgress = {
+  iteration: number;
+  phase: "context" | "model" | "tool" | "final" | "retrying";
+  modelCalls: number;
+  toolCalls: number;
+  totalInputTokens: number;
+  outputTokens: number;
+  detail: string;
+  contextTokens?: number;
+  prompt?: string;
+  state?: AgentState;
+  graph?: StateGraph;
+  rawModelOutput?: string;
+  action?: "tool" | "final" | "invalid";
+  tool?: string;
+  error?: string;
+};
+
+type AgentTraceStep = {
+  step: number;
+  nodeIds: string[];
+  prompt: string;
+  contextTokens: number;
+  rawModelOutput: string;
+  action: "tool" | "final" | "invalid";
+  tool?: string;
+  error?: string;
+};
+```
+
+`AgentStreamEvent` is a discriminated union of `metadata`, `progress`, and `final`.
+
+## Visualization graph
+
+```ts
+type StateGraph = {
   nodes: GraphNode[];
   edges: GraphEdge[];
 };
 ```
 
-## GraphNode
+`Agent.getGraph()` returns this view. `graphToMermaid()` renders it without graph-database or UI dependencies.
 
-```ts
-export type GraphNode = {
-  id: string;
-  type: NodeType;
-  text: string;
-  data?: Record<string, unknown>;
-  confidence?: number;
-  status?: "active" | "resolved" | "rejected" | "stale";
-  createdAt: string;
-};
-```
+## Low-level graph utilities
 
-## GraphOp
+The package also exports GraphFrame-era graph construction and compatibility utilities:
 
-```ts
-export type GraphOp =
-  | { op: "add_node"; node: Omit<GraphNode, "createdAt"> }
-  | { op: "add_edge"; from: string; to: string; type: EdgeType }
-  | { op: "update_node"; id: string; patch: Partial<GraphNode> }
-  | { op: "focus"; currentFocus: string }
-  | { op: "call_tool"; tool: string; args: Record<string, unknown> }
-  | { op: "final"; answer: string };
-```
+- graph creation, clone, fork, append-input, and validation helpers;
+- `serializeGraphFrame()` and `PromptBudgetExceededError`;
+- GraphOps schemas, parsing, validation, and application;
+- graph clustering and projection helpers;
+- low-level `GraphFrame`, `GraphOp`, `StateGraph`, and trace types.
+
+These utilities remain available for explicit graph work and historical artifact compatibility. They are not the memory engine used by `Agent`, and the public SDK does not expose a second graph-frame agent class.
+
+For exact signatures, the package root is the authority: [`src/index.ts`](https://github.com/stateweave/sdk-typescript/blob/development/src/index.ts).
