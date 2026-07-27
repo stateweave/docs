@@ -1,57 +1,111 @@
 ---
-title: Agent types
-description: Public StateWeave Agent state, result, trace, and event types.
+title: Types and exports
+description: Public state, model, tool, stream, graph-view, and low-level utility exports.
 ---
 
-## AgentState
+## Public TypeScript surface
+
+Import public values and types from the package root.
+
+```ts
+import { Agent, AnthropicModel, type AgentState } from "stateweave";
+```
+
+## State
 
 ```ts
 type AgentState = {
   version: 1;
-  nodes: CausalNode[];
+  nodes: Array<{
+    id: string;
+    kind:
+      | "system" | "goal" | "inference" | "semantic"
+      | "tool_call" | "tool_result" | "resource"
+      | "verification" | "answer" | "protocol_error";
+    parents: string[];
+    payload: unknown;
+    createdAt: string;
+    sequence: number;
+    resourceKey?: string;
+  }>;
   frontier: string[];
 };
 ```
 
-## CausalNode
+`AgentState` and its structural node shape are public through the `AgentState` alias; the internal causal node aliases are not separate package-root exports.
 
-```ts
-type CausalNode = {
-  id: string;
-  kind: "system" | "goal" | "inference" | "semantic" | "tool_call" |
-    "tool_result" | "resource" | "verification" | "answer" | "protocol_error";
-  parents: string[];
-  payload: unknown;
-  createdAt: string;
-  sequence: number;
-  resourceKey?: string;
-};
-```
-
-## SemanticNodeType
+## Semantic configuration
 
 ```ts
 type SemanticNodeType = {
   name: string;
   description: string;
 };
-```
 
-Configure semantic types with `AgentArgs.nodeTypes`. Built-ins are `memory`, `preference`, `wisdom`, and `artifact`. `allowDynamicNodeTypes` permits the agent to create a bounded lowercase type when configured types do not fit.
-
-## AgentRunResult
-
-```ts
-type AgentRunResult = {
-  finalAnswer: string;
-  state: AgentState;
-  graph: StateGraph;
-  trace: AgentTraceStep[];
-  metadata: AgentRunMetadata;
+// payload shape when a causal node has kind: "semantic"
+type SemanticPayload = {
+  type: string;
+  key: string;
+  content: unknown;
 };
 ```
 
-## AgentProgress
+`SemanticNodeType` is exported. `SemanticPayload` above documents the runtime payload shape; it is not a separate package-root type. The default configured types are memory, preference, wisdom, and artifact.
+
+## Model
+
+```ts
+type ModelInput = {
+  prompt: string;
+  frame?: GraphFrame;
+  mode?: "graph_ops" | "text";
+  parameters?: ModelParameters;
+  system?: string;
+  signal?: AbortSignal;
+};
+
+type ModelOutput = {
+  text: string;
+  usage?: ModelUsage;
+};
+
+type Model = {
+  complete(input: ModelInput): Promise<ModelOutput>;
+  stream(input: ModelInput): AsyncIterable<ModelToken>;
+};
+```
+
+The public `Agent` calls `complete()` with `mode: "text"`, a compiled `prompt`, and no `frame`. The optional frame and `graph_ops` mode remain for the low-level compatibility utilities.
+
+Primary adapter exports:
+
+- `MockModel`
+- `AnthropicModel`
+- `anthropicConfigFromEnv()`
+- `createModelFromEnv()`
+- `collectModelText()`
+- `estimateStateWeaveTokens()`
+
+## Tool
+
+```ts
+type Tool = {
+  name: string;
+  description: string;
+  schema: z.ZodSchema;
+  execute(args: unknown): Promise<unknown>;
+};
+```
+
+Tool helpers:
+
+- `createDefaultTools()`
+- `createFileSystemTools()`
+- `describeTools()`
+- `mockTools`
+- `toolMap()`
+
+## Progress and traces
 
 ```ts
 type AgentProgress = {
@@ -64,21 +118,49 @@ type AgentProgress = {
   detail: string;
   contextTokens?: number;
   prompt?: string;
+  state?: AgentState;
   graph?: StateGraph;
   rawModelOutput?: string;
   action?: "tool" | "final" | "invalid";
   tool?: string;
   error?: string;
 };
+
+type AgentTraceStep = {
+  step: number;
+  nodeIds: string[];
+  prompt: string;
+  contextTokens: number;
+  rawModelOutput: string;
+  action: "tool" | "final" | "invalid";
+  tool?: string;
+  error?: string;
+};
 ```
 
-## AgentStreamEvent
+`AgentStreamEvent` is a discriminated union of `metadata`, `progress`, and `final`.
+
+## Visualization graph
 
 ```ts
-type AgentStreamEvent =
-  | { type: "metadata"; metadata: AgentStartMetadata }
-  | { type: "progress"; progress: AgentProgress }
-  | { type: "final"; result: AgentRunResult };
+type StateGraph = {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+};
 ```
 
-`GraphFrame`, `GraphOps`, and `StateGraph` remain low-level utility types. The public `Agent` memory engine uses `AgentState`.
+`Agent.getGraph()` returns this view. `graphToMermaid()` renders it without graph-database or UI dependencies.
+
+## Low-level graph utilities
+
+The package also exports GraphFrame-era graph construction and compatibility utilities:
+
+- graph creation, clone, fork, append-input, and validation helpers;
+- `serializeGraphFrame()` and `PromptBudgetExceededError`;
+- GraphOps schemas, parsing, validation, and application;
+- graph clustering and projection helpers;
+- low-level `GraphFrame`, `GraphOp`, `StateGraph`, and trace types.
+
+These utilities remain available for explicit graph work and historical artifact compatibility. They are not the memory engine used by `Agent`, and the public SDK does not expose a second graph-frame agent class.
+
+For exact signatures, the package root is the authority: [`src/index.ts`](https://github.com/stateweave/sdk-typescript/blob/development/src/index.ts).

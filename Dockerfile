@@ -7,10 +7,11 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 COPY docs/ ./
+COPY scripts/patch-mintlify-export.mjs /app/scripts/patch-mintlify-export.mjs
 RUN npx --yes mintlify@4.2.667 export --output /tmp/stateweave-docs.zip \
   && mkdir -p /export \
   && unzip -q /tmp/stateweave-docs.zip -d /export \
-  && sed -i '/openInBrowser(url);/d' /export/serve.js
+  && node /app/scripts/patch-mintlify-export.mjs /export
 
 FROM node:22-alpine AS runtime
 

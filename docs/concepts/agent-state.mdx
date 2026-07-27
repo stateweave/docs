@@ -1,68 +1,121 @@
 ---
 title: AgentState
-description: The lossless immutable state owned by a StateWeave Agent.
+description: The lossless persistence format, frontier, resource versions, and semantic memory.
 ---
 
-`AgentState` is the persistence format for the public `Agent`.
+## The durable object
+
+`AgentState` is a versioned snapshot with only two top-level fields:
 
 ```ts
 type AgentState = {
   version: 1;
-  nodes: Array<{
-    id: string;
-    kind: "system" | "goal" | "inference" | "semantic" | "tool_call" |
-      "tool_result" | "resource" | "verification" | "answer" | "protocol_error";
-    parents: string[];
-    payload: unknown;
-    createdAt: string;
-    sequence: number;
-    resourceKey?: string;
-  }>;
+  nodes: CausalNode[];
   frontier: string[];
 };
 ```
 
-## Identity
+It is JSON-serializable, provider-neutral, and owned by your application.
 
-Node ids are SHA-256 content identities over:
+## Node anatomy
 
-- node kind
-- sorted parent ids
-- payload
-- optional resource key
+```ts
+type CausalNode = {
+  id: string;
+  kind:
+    | "system" | "goal" | "inference" | "semantic"
+    | "tool_call" | "tool_result" | "resource"
+    | "verification" | "answer" | "protocol_error";
+  parents: string[];
+  payload: unknown;
+  createdAt: string;
+  sequence: number;
+  resourceKey?: string;
+};
+```
 
-Timestamps and insertion sequence are metadata, not identity.
+| Field | Meaning |
+| --- | --- |
+| `id` | `cw_` plus a truncated SHA-256 content identity |
+| `parents` | Direct causal dependencies; every parent appears earlier in sequence |
+| `payload` | Kind-specific immutable data |
+| `sequence` | Stable insertion order inside the snapshot |
+| `resourceKey` | Identity shared by versions of one logical resource |
 
 ## Frontier
 
-The frontier identifies active graph heads. A later goal links to the previous frontier, preserving continuity across user turns.
+The frontier is the set of active graph heads. Appending a normal node removes its parents from the frontier and adds the new node. A new user goal uses the previous frontier as causal context, preserving continuity across turns.
 
-## Semantic node types
+The frontier is not “the last message.” Multiple heads can remain active when work branches.
 
-The causal kind `semantic` carries configurable domain meaning without changing the graph protocol. StateWeave includes `memory`, `preference`, `wisdom`, and `artifact` types by default.
+## Resource versions
+
+When a node has `resourceKey`, a later node with the same key automatically includes the previous resource head as a parent.
+
+```txt
+resource:file:src/config.ts:v1 → resource:file:src/config.ts:v2
+```
+
+The source graph retains both. Projection treats the newest resource head as current.
+
+## Semantic memory
+
+The structural kind remains `semantic`; its payload carries domain meaning:
+
+```ts
+type SemanticNodePayload = {
+  type: string;
+  key: string;
+  content: unknown;
+};
+```
+
+Built-in types are:
+
+- `memory`: durable fact or context;
+- `preference`: stable user choice or working style;
+- `wisdom`: reusable evidence-supported lesson;
+- `artifact`: durable output or artifact reference.
+
+Configure the vocabulary per product:
 
 ```ts
 const agent = new Agent({
   model,
   nodeTypes: [
     { name: "preference", description: "A stable user preference." },
-    { name: "pros-cons", description: "A durable decision assessment." }
+    { name: "decision", description: "A durable decision and its rationale." }
   ],
-  allowDynamicNodeTypes: true
+  allowDynamicNodeTypes: false
 });
 ```
 
-A semantic payload has a stable `type`, `key`, and arbitrary JSON `content`. The agent may preserve it inside the same `TOOL_CALL` or `FINAL` response, so semantic state does not require a second model call. Type names and payload content participate in lexical retrieval; the type also influences ranking.
+A stable semantic resource key has the form:
 
-## Resource versions
-
-Nodes sharing a `resourceKey` form a version chain. Semantic nodes use `semantic:<type>:<key>`, so writing the same type and key makes the newest immutable value authoritative while preserving history.
-
-## Export and import
-
-```ts
-const state = agent.getState();
-const resumed = new Agent({ model, state });
+```txt
+semantic:<type>:<key>
 ```
 
-StateWeave validates node identity, causal parent ordering, sequence integrity, and frontier references before accepting imported state.
+Writing the same type and key creates an immutable successor. The model can preserve semantic nodes in the same `TOOL_CALL` or `FINAL` response, so memory capture does not require a second classification call.
+
+Set `allowDynamicNodeTypes: true` only when the agent should invent bounded lowercase types. Configured vocabularies are easier to retrieve, render, and govern.
+
+## Import validation
+
+The constructor and `reset(state)` validate:
+
+- snapshot version;
+- allowed structural kinds;
+- unique IDs;
+- parent existence and causal ordering;
+- recomputed content identities;
+- contiguous sequence values;
+- frontier references.
+
+Treat invalid imported state as corrupted or untrusted input. Do not repair it silently.
+
+## Storage policy
+
+StateWeave does not choose a database. Store `AgentState` as one versioned application object, or transform it into your own durable representation while preserving node content and identities.
+
+For browser-owned products, validate size before accepting state back at a server boundary. For sensitive products, encrypt at rest and apply user-level access control. The graph may contain prompts, tool evidence, and model outputs.
