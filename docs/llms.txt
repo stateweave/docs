@@ -1,0 +1,33 @@
+# StateWeave
+
+> StateWeave is a low-level TypeScript SDK for immutable causal agent state. The graph is canonical state; each model prompt is a bounded causal projection. The public SDK has one agent class: Agent.
+
+## Start
+
+- [Introduction](https://stateweave.dev/introduction): The primitive, core invariant, and ownership boundaries.
+- [Quickstart](https://stateweave.dev/quickstart): Build from source, run a deterministic agent, persist state, and connect Anthropic.
+
+## Understand
+
+- [Why StateWeave](https://stateweave.dev/concepts/why-stateweave): Why durable state and model context should be different objects.
+- [How it works](https://stateweave.dev/concepts/how-it-works): One turn through append, projection, action, evidence, and transactional commit.
+- [AgentState](https://stateweave.dev/concepts/agent-state): Nodes, frontier, resource versions, semantic memory, and validation.
+
+## Build
+
+- [Models and tools](https://stateweave.dev/guides/models-and-tools): Provider-neutral model adapters, Zod tools, and default workspace boundaries.
+- [Persist and stream](https://stateweave.dev/guides/persist-and-stream): State ownership, concurrency, engine events, visualization, traces, and failure.
+- [Complete agent](https://stateweave.dev/examples/complete-agent): A server-owned TypeScript integration and coding-agent variant.
+
+## Reference
+
+- [Agent API](https://stateweave.dev/reference/agent): Constructor options, methods, defaults, results, and AgentRunError.
+- [Types and exports](https://stateweave.dev/reference/types): State, model, tool, stream, graph-view, and low-level compatibility exports.
+
+## Source
+
+- [TypeScript SDK](https://github.com/stateweave/sdk-typescript)
+- [Documentation source](https://github.com/stateweave/docs)
+- [Development lab](https://dev.stateweave.dev/lab/)
+
+The initial npm package publication is pending authenticated npm ownership. Do not present `pnpm add stateweave` as available until the package exists.
