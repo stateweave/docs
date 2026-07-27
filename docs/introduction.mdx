@@ -1,47 +1,64 @@
 ---
-title: TypeScript SDK
-description: Build persistent agents around immutable causal graph state.
+title: Introduction
+description: The smallest useful explanation of StateWeave.
 ---
 
-StateWeave replaces transcript-shaped agent memory with an immutable causal graph.
+<div className="sw-status">TypeScript SDK · Causal Weave v3</div>
 
-```txt
-immutable causal graph → bounded working context → ordinary model action → causal graph
-```
+## A graph is the memory.
 
-There is one public agent class: `Agent`.
+<div className="sw-thesis">
+StateWeave is a low-level agent primitive. It stores what happened as an immutable causal graph, then compiles only the relevant part into each model prompt.
+</div>
 
-The runtime automatically records goals, model inferences, tool calls, tool results, resource versions, protocol errors, and answers. Every model action points to the exact graph nodes compiled for that inference.
+<div className="sw-pipeline">
+  <div><strong>Store</strong><span>Append causal nodes</span></div>
+  <div><strong>Select</strong><span>Compile a bounded view</span></div>
+  <div><strong>Act</strong><span>Call a normal model</span></div>
+  <div><strong>Commit</strong><span>Record evidence and answer</span></div>
+</div>
 
-The model remains a normal transformer. It receives a temporary linear rendering because provider APIs require one, but StateWeave stores graph state—not `messages[]`.
+Most agent runtimes make a conversation transcript the durable object. StateWeave does not. Its durable object is `AgentState`: goals, inferences, tool evidence, resource versions, semantic memory, errors, and answers connected by direct dependencies.
 
-## What this unlocks
+A provider still receives a linear token sequence. Transformers require one. StateWeave treats that sequence as a temporary view of state, not as state itself.
 
-- lossless append-only working state
-- exact causal lineage for model actions
-- bounded model context without deleting graph history
-- current resource heads and superseded versions
-- inspectable prompts, actions, tools, retries, and token metrics
-- dependency-free graph visualization
+<div className="sw-invariant">
+  <b>Core invariant</b>
+  <p>A model action’s parents are exactly the graph nodes selected for that inference.</p>
+</div>
 
-## Runtime ownership
+The runtime knows the read set because it builds the prompt. The model does not draw edges or emit graph operations. It returns an ordinary `TOOL_CALL` or `FINAL`; StateWeave records the lineage.
 
-The model uses ordinary actions:
+## Why this primitive exists
 
-```txt
-TOOL_CALL {"name":"read_file","args":{"file_path":"src/app.ts"}}
-```
+Long-running agents need two things that transcripts conflate:
 
-or:
+1. **A complete record.** What was observed, changed, superseded, rejected, and concluded?
+2. **A small working view.** What does this inference need now?
 
-```txt
-FINAL: The parser is fixed and the focused check passes.
-```
+Deleting old messages damages the record. Replaying every message eventually exceeds the model window. Summaries help with size, but they replace evidence with another generated statement.
 
-The runtime—not the model—creates graph nodes and edges.
+StateWeave separates the two concerns. The graph remains append-only. Projection is allowed to omit, rank, collapse, and supersede details only in the next prompt.
 
-## Try the lab
+> **The graph is truth. The prompt is a view.**
 
-The development lab runs the same public `Agent`:
+## What StateWeave owns
 
-[Open the StateWeave lab](https://dev.stateweave.dev/lab/)
+<div className="sw-boundaries">
+  <div className="sw-boundary"><strong>StateWeave owns</strong><p>Causal nodes, projection, action parsing, tool evidence, state validation, and run traces.</p></div>
+  <div className="sw-boundary"><strong>You own</strong><p>The model adapter, tools, persistence, product policy, user interface, and deployment.</p></div>
+  <div className="sw-boundary"><strong>The provider sees</strong><p>The bounded compiled prompt and provider-level system instruction for the current inference.</p></div>
+</div>
+
+StateWeave is not a model, database, vector store, workflow service, or hosted memory product. It is the state machine beneath an agent.
+
+## Read this manual
+
+The shortest path is:
+
+1. [Run the quickstart](/quickstart).
+2. Read [Why StateWeave](/concepts/why-stateweave).
+3. Follow one turn through [How it works](/concepts/how-it-works).
+4. Use the [complete example](/examples/complete-agent) as an integration template.
+
+The public SDK has one agent class: `Agent`.

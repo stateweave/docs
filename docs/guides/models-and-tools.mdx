@@ -1,0 +1,136 @@
+---
+title: Models and tools
+description: Connect provider-neutral models and narrowly scoped Zod tools.
+---
+
+## Connect the world outside the graph
+
+StateWeave owns causal state. Models and tools are explicit boundaries supplied to `Agent`.
+
+## Model contract
+
+```ts
+type Model = {
+  complete(input: ModelInput): Promise<ModelOutput>;
+  stream(input: ModelInput): AsyncIterable<ModelToken>;
+};
+```
+
+The public `Agent` loop currently calls `complete()`. Implement `stream()` for interface completeness and direct adapter use.
+
+```ts
+import type { Model } from "stateweave";
+
+export const model: Model = {
+  async complete(input) {
+    const response = await provider.generate({
+      system: input.system,
+      prompt: input.prompt,
+      signal: input.signal
+    });
+
+    return {
+      text: response.text,
+      usage: response.usage
+    };
+  },
+
+  async *stream(input) {
+    yield { type: "token", token: (await this.complete(input)).text };
+  }
+};
+```
+
+Keep adapters thin. Do not reconstruct transcripts or summarize state inside the adapter. `input.prompt` is already the compiled causal view.
+
+### Included adapters
+
+```ts
+import { AnthropicModel, createModelFromEnv, MockModel } from "stateweave";
+```
+
+- `MockModel` provides deterministic tests.
+- `AnthropicModel` is a thin HTTP adapter without an Anthropic SDK dependency.
+- `createModelFromEnv()` selects `mock` or Anthropic-compatible configuration from environment variables.
+
+## Tool contract
+
+```ts
+type Tool = {
+  name: string;
+  description: string;
+  schema: z.ZodSchema;
+  execute(args: unknown): Promise<unknown>;
+};
+```
+
+A complete custom tool:
+
+```ts
+import { z } from "zod";
+import type { Tool } from "stateweave";
+
+const orderArgs = z.object({
+  orderId: z.string().regex(/^ord_[a-z0-9]+$/)
+});
+
+export const lookupOrder: Tool = {
+  name: "lookup_order",
+  description: "Look up one order by its ord_ identifier.",
+  schema: orderArgs,
+  async execute(args) {
+    const { orderId } = orderArgs.parse(args);
+    const order = await orders.findById(orderId);
+    return order
+      ? { ok: true, orderId, status: order.status }
+      : { ok: false, orderId, error: "not_found" };
+  }
+};
+```
+
+```ts
+const agent = new Agent({ model, tools: [lookupOrder] });
+```
+
+Descriptions become part of the provider system contract. The runtime validates arguments before execution and records both successful and failed results.
+
+## Default workspace tools
+
+If `tools` is omitted, `Agent` creates four workspace-scoped tools:
+
+- `read_file`
+- `write_file`
+- `edit_file`
+- read-only `bash_command`
+
+Pass `tools: []` for no tools. Pass a custom array to replace the defaults.
+
+```ts
+import { createFileSystemTools } from "stateweave";
+
+const tools = createFileSystemTools({
+  rootDir: "/srv/sandboxes/run-123",
+  timeoutMs: 5_000,
+  maxOutputBytes: 32_000,
+  allowedBashCommands: ["pwd", "ls", "rg", "node"]
+});
+```
+
+Default file tools reject absolute paths, traversal, and symlink components. The shell tool is a no-profile, fixed-`PATH`, read-only command allowlist. It rejects pipes, redirects, command substitution, arbitrary interpreters, and network commands.
+
+These checks reduce accidental scope. They are not a process sandbox. For untrusted coding work, run the entire agent inside an isolated filesystem and process boundary.
+
+## Design tools for evidence
+
+Return small structured values with stable identifiers, status, hashes, and mutation facts.
+
+```ts
+return {
+  ok: true,
+  resource: "order:ord_123",
+  version: "7",
+  status: "shipped"
+};
+```
+
+Structured results improve projection and inspection. Do not return secrets, unlimited logs, or data the next inference does not need.

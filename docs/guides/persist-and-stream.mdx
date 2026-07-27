@@ -1,0 +1,112 @@
+---
+title: Persist and stream
+description: Own AgentState, stream engine progress, visualize the graph, and handle failure.
+---
+
+## Build the product boundary
+
+StateWeave keeps state in memory while an `Agent` instance lives. Durable storage, authorization, and reconnect behavior belong to your application.
+
+## Save after success
+
+```ts
+const current = await store.load(sessionId);
+const agent = new Agent({ model, tools, state: current ?? undefined });
+
+const result = await agent.run(input, { signal: request.signal });
+await store.compareAndSet(sessionId, current?.revision, result.state);
+
+return result.finalAnswer;
+```
+
+Use optimistic concurrency or one session worker when several requests can update the same state. A stateful `Agent` serializes calls inside one process, not across replicas.
+
+## Browser-owned state
+
+A browser may own `AgentState`, but the server must treat uploaded state as untrusted:
+
+1. enforce a byte limit before parsing;
+2. construct `Agent` to validate identities and causal ordering;
+3. authorize any application-level session envelope;
+4. never let browser state choose server tools or provider credentials;
+5. return the new state only after a successful run.
+
+Browser storage is readable by anyone with access to that browser profile. Do not store sensitive evidence there without an explicit product security model.
+
+## Stream engine events
+
+`streamEvents()` exposes causal progress. It does not stream provider tokens from the public `Agent` loop.
+
+```ts
+for await (const event of agent.streamEvents(input, { signal })) {
+  if (event.type === "metadata") {
+    console.log(event.metadata.runId);
+  }
+
+  if (event.type === "progress") {
+    console.log(event.progress.phase, event.progress.detail);
+    renderGraph(event.progress.graph);
+  }
+
+  if (event.type === "final") {
+    await store.save(event.result.state);
+    renderAnswer(event.result.finalAnswer);
+  }
+}
+```
+
+Progress phases are `context`, `model`, `tool`, `retrying`, and `final`. Events may include the exact compiled prompt, selected state, visualization graph, raw model output, action, tool name, or protocol error.
+
+`stream()` and `streamText()` are convenience iterables that yield the accepted final answer as one value:
+
+```ts
+for await (const answer of agent.stream(input)) {
+  console.log(answer);
+}
+```
+
+## Inspect without exposing everything
+
+```ts
+const state = agent.getState(); // lossless persistence
+const graph = agent.getGraph(); // bounded-text visualization view
+```
+
+`getGraph()` maps causal nodes into consumer-safe graph nodes and edges. Large display text is truncated; `AgentState` is unchanged.
+
+```ts
+import { graphToMermaid } from "stateweave";
+console.log(graphToMermaid(agent.getGraph()));
+```
+
+Traces are more sensitive than the graph view. Each step can contain the exact provider prompt and raw model output. Restrict trace access and retention accordingly.
+
+## Handle aborted and failed runs
+
+```ts
+import { AgentRunError } from "stateweave";
+
+try {
+  await agent.run(input, { signal });
+} catch (error) {
+  if (error instanceof AgentRunError) {
+    audit.write({ trace: error.trace, metrics: error.metrics });
+    // agent.getState() still returns the last successful commit
+  }
+  throw error;
+}
+```
+
+Closing a `streamEvents()` consumer aborts its run. A failed run’s diagnostic graph can explain what happened, but do not persist it as the canonical session unless your product deliberately models failed attempts.
+
+## Persist traces only when needed
+
+```ts
+const agent = new Agent({
+  model,
+  tools,
+  traceDir: ".stateweave/traces"
+});
+```
+
+`traceDir` writes successful run results as JSON. In hosted products, prefer an access-controlled event store with explicit retention instead of a shared local directory.
