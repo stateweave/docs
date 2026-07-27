@@ -28,6 +28,5 @@
 
 - [TypeScript SDK](https://github.com/stateweave/sdk-typescript)
 - [Documentation source](https://github.com/stateweave/docs)
-- [Development lab](https://dev.stateweave.dev/lab/)
 
 The initial npm package publication is pending authenticated npm ownership. Do not present `pnpm add stateweave` as available until the package exists.
