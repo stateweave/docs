@@ -55,12 +55,7 @@
         "label": "StateWeave AI",
         "href": "https://stateweave.ai"
       }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Open lab",
-      "href": "https://dev.stateweave.dev/lab/"
-    }
+    ]
   },
   "navigation": {
     "groups": [
