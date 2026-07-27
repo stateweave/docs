@@ -86,7 +86,7 @@
     "prompt": "Search the manual"
   },
   "contextual": {
-    "options": ["copy", "view"],
+    "options": ["copy"],
     "display": "toc"
   },
   "seo": {
