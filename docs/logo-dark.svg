@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 32" role="img" aria-label="StateWeave">
+  <g transform="translate(1 1)">
+    <path fill="#5fc58a" d="M3 2a2 2 0 0 1 4 0v26a2 2 0 0 1-4 0V2Zm9 0a2 2 0 0 1 4 0v26a2 2 0 0 1-4 0V2Zm9 0a2 2 0 0 1 4 0v26a2 2 0 0 1-4 0V2Z"/>
+    <path fill="#ff8067" d="M2 11h24a3 3 0 0 1 0 6H2a3 3 0 0 1 0-6Z"/>
+    <path fill="#5fc58a" d="M3 10h4v8H3v-8Zm18 0h4v8h-4v-8Z"/>
+  </g>
+  <text x="40" y="22" fill="#eef5ea" font-family="Geist, Arial, sans-serif" font-size="19" font-weight="650" letter-spacing="-0.6">StateWeave</text>
+</svg>

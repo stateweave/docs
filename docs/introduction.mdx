@@ -1,42 +1,64 @@
 ---
 title: Introduction
-description: StateWeave is a low-level SDK primitive for agent state.
+description: The smallest useful explanation of StateWeave.
 ---
 
-StateWeave replaces the usual transcript-shaped runtime primitive with a graph-shaped one.
+<div className="sw-status">TypeScript SDK · Causal Weave v3</div>
 
-```txt
-GraphFrame -> model -> GraphOps -> updated StateGraph
-```
+## A graph is the memory.
 
-The model is still a normal transformer. The difference is what the SDK treats as state:
+<div className="sw-thesis">
+StateWeave is a low-level agent primitive. It stores what happened as an immutable causal graph, then compiles only the relevant part into each model prompt.
+</div>
 
-- traditional SDKs pass a list of messages
-- StateWeave passes a structured frame and graph
-- the model returns operations that mutate the graph
+<div className="sw-pipeline">
+  <div><strong>Store</strong><span>Append causal nodes</span></div>
+  <div><strong>Select</strong><span>Compile a bounded view</span></div>
+  <div><strong>Act</strong><span>Call a normal model</span></div>
+  <div><strong>Commit</strong><span>Record evidence and answer</span></div>
+</div>
 
-StateWeave is intentionally low-level. You bring the model adapter, tools, storage, UI, and product behavior.
+Most agent runtimes make a conversation transcript the durable object. StateWeave does not. Its durable object is `AgentState`: goals, inferences, tool evidence, resource versions, semantic memory, errors, and answers connected by direct dependencies.
 
-## What this unlocks
+A provider still receives a linear token sequence. Transformers require one. StateWeave treats that sequence as a temporary view of state, not as state itself.
 
-- visible working memory
-- inspectable context
-- tool results as graph nodes
-- decisions and constraints as first-class state
-- graph visualization of how an agent got somewhere
+<div className="sw-invariant">
+  <b>Core invariant</b>
+  <p>A model action’s parents are exactly the graph nodes selected for that inference.</p>
+</div>
 
-## Try the CLI
+The runtime knows the read set because it builds the prompt. The model does not draw edges or emit graph operations. It returns an ordinary `TOOL_CALL` or `FINAL`; StateWeave records the lineage.
 
-```bash
-pnpm install
-pnpm cli
-```
+## Why this primitive exists
 
-Then type one task:
+Long-running agents need two things that transcripts conflate:
 
-```txt
-stateweave › Hi my name is Radi.
-stateweave › What's my name?
-```
+1. **A complete record.** What was observed, changed, superseded, rejected, and concluded?
+2. **A small working view.** What does this inference need now?
 
-The CLI keeps short-term graph memory during the session and shows what goes into the model and what comes out.
+Deleting old messages damages the record. Replaying every message eventually exceeds the model window. Summaries help with size, but they replace evidence with another generated statement.
+
+StateWeave separates the two concerns. The graph remains append-only. Projection is allowed to omit, rank, collapse, and supersede details only in the next prompt.
+
+> **The graph is truth. The prompt is a view.**
+
+## What StateWeave owns
+
+<div className="sw-boundaries">
+  <div className="sw-boundary"><strong>StateWeave owns</strong><p>Causal nodes, projection, action parsing, tool evidence, state validation, and run traces.</p></div>
+  <div className="sw-boundary"><strong>You own</strong><p>The model adapter, tools, persistence, product policy, user interface, and deployment.</p></div>
+  <div className="sw-boundary"><strong>The provider sees</strong><p>The bounded compiled prompt and provider-level system instruction for the current inference.</p></div>
+</div>
+
+StateWeave is not a model, database, vector store, workflow service, or hosted memory product. It is the state machine beneath an agent.
+
+## Read this manual
+
+The shortest path is:
+
+1. [Run the quickstart](/quickstart).
+2. Read [Why StateWeave](/concepts/why-stateweave).
+3. Follow one turn through [How it works](/concepts/how-it-works).
+4. Use the [complete example](/examples/complete-agent) as an integration template.
+
+The public SDK has one agent class: `Agent`.

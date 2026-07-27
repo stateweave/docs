@@ -1,34 +1,118 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "name": "StateWeave",
-  "theme": "mint",
+  "description": "A small TypeScript SDK for immutable causal agent state.",
+  "theme": "maple",
   "colors": {
-    "primary": "#7c3aed",
-    "light": "#8b5cf6",
-    "dark": "#6d28d9"
+    "primary": "#f06a4f",
+    "light": "#f47b63",
+    "dark": "#ff8067"
+  },
+  "logo": {
+    "light": "/logo-light.svg",
+    "dark": "/logo-dark.svg",
+    "href": "/introduction"
+  },
+  "favicon": "/favicon.svg",
+  "appearance": {
+    "default": "light"
+  },
+  "background": {
+    "color": {
+      "light": "#f4f7f1",
+      "dark": "#0d1510"
+    }
+  },
+  "fonts": {
+    "heading": {
+      "family": "Geist",
+      "weight": 600
+    },
+    "body": {
+      "family": "Geist",
+      "weight": 400
+    }
+  },
+  "icons": {
+    "library": "tabler"
+  },
+  "styling": {
+    "eyebrows": "breadcrumbs",
+    "codeblocks": {
+      "theme": {
+        "light": "vitesse-light",
+        "dark": "vitesse-dark"
+      }
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/stateweave/sdk-typescript"
+      },
+      {
+        "label": "StateWeave AI",
+        "href": "https://stateweave.ai"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Open lab",
+      "href": "https://dev.stateweave.dev/lab/"
+    }
   },
   "navigation": {
     "groups": [
       {
-        "group": "Get started",
+        "group": "Start",
         "pages": ["introduction", "quickstart"]
       },
       {
-        "group": "Concepts",
-        "pages": ["concepts/messages-vs-stateweave", "concepts/graphframe", "concepts/graphops", "concepts/traces"]
+        "group": "Understand",
+        "pages": ["concepts/why-stateweave", "concepts/how-it-works", "concepts/agent-state"]
       },
       {
-        "group": "Guides",
-        "pages": ["guides/connect-an-llm", "guides/add-tools", "guides/interactive-cli", "guides/visualize-graph", "guides/deploy-docs"]
-      },
-      {
-        "group": "Examples",
-        "pages": ["examples/coding-agent"]
+        "group": "Build",
+        "pages": ["guides/models-and-tools", "guides/persist-and-stream", "examples/complete-agent"]
       },
       {
         "group": "Reference",
-        "pages": ["reference/model", "reference/tool", "reference/types"]
+        "pages": ["reference/agent", "reference/types"]
       }
     ]
+  },
+  "search": {
+    "prompt": "Search the manual"
+  },
+  "contextual": {
+    "options": ["copy"],
+    "display": "toc"
+  },
+  "seo": {
+    "indexing": "navigable"
+  },
+  "redirects": [
+    { "source": "/", "destination": "/introduction", "permanent": false },
+    { "source": "/concepts/messages-vs-stateweave", "destination": "/concepts/why-stateweave", "permanent": true },
+    { "source": "/concepts/agent-loop", "destination": "/concepts/how-it-works", "permanent": true },
+    { "source": "/concepts/traces", "destination": "/guides/persist-and-stream", "permanent": true },
+    { "source": "/guides/connect-an-llm", "destination": "/guides/models-and-tools", "permanent": true },
+    { "source": "/guides/add-tools", "destination": "/guides/models-and-tools", "permanent": true },
+    { "source": "/guides/interactive-cli", "destination": "/examples/complete-agent", "permanent": true },
+    { "source": "/guides/visualize-graph", "destination": "/guides/persist-and-stream", "permanent": true },
+    { "source": "/examples/coding-agent", "destination": "/examples/complete-agent", "permanent": true },
+    { "source": "/reference/model", "destination": "/reference/types", "permanent": true },
+    { "source": "/reference/tool", "destination": "/reference/types", "permanent": true }
+  ],
+  "errors": {
+    "404": {
+      "redirect": false,
+      "title": "This thread ends here.",
+      "description": "The page is not part of the current StateWeave manual. [Return to the introduction](/introduction)."
+    }
+  },
+  "markdown": {
+    "instructions": "StateWeave exposes one public agent class, Agent. AgentState is the lossless persistence format. The graph is canonical state; prompts are bounded projections."
   }
 }

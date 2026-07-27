@@ -1,9 +1,9 @@
 # Contributing to StateWeave Docs
 
-Docs should help developers understand and use the StateWeave primitive quickly:
+Docs should explain the public StateWeave primitive accurately:
 
 ```txt
-GraphFrame -> GraphOps -> StateGraph
+immutable causal graph → bounded working context → ordinary model action → causal graph
 ```
 
 ## Local setup
@@ -14,8 +14,6 @@ pnpm docs:dev
 ```
 
 ## Pull requests
-
-Use this structure:
 
 ```md
 ## Summary
@@ -34,8 +32,8 @@ List the docs pages touched.
 
 ## Style
 
-- Use clear TypeScript examples.
-- Keep pages concise.
-- Explain what goes into the model and what comes out.
-- Prefer diagrams or Mermaid snippets when explaining graph state.
-- Link to the SDK repo for source-level details.
+- Use the single public `Agent` class.
+- Use `AgentState` for persistence examples.
+- Explain compiled causal context and ordinary model actions clearly.
+- Keep pages concise and TypeScript examples runnable.
+- Link to the SDK repository for source-level details.

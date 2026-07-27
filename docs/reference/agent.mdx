@@ -1,0 +1,134 @@
+---
+title: Agent API
+description: Constructor options, methods, defaults, results, and failure semantics.
+---
+
+## `Agent`
+
+The single public agent class backed by Causal Weave v3.
+
+```ts
+new Agent(args: AgentArgs)
+```
+
+## Constructor
+
+| Option | Type | Default |
+| --- | --- | --- |
+| `model` | `Model` | required |
+| `tools` | `Tool[]` | scoped workspace tools |
+| `state` | `AgentState` | empty state |
+| `systemPrompt` | `string` | built-in agent instruction |
+| `providerSystem` | `string` | built-in action protocol |
+| `maxIterations` | `number` | `30` |
+| `maxNoProgressIterations` | `number` | unset |
+| `maxPromptTokens` | `number` | `64_000` |
+| `projectionTargetTokens` | `number` | `16_000`, clamped to hard ceiling |
+| `enforceCompletionEvidence` | `boolean` | `true` |
+| `nodeTypes` | `SemanticNodeType[]` | memory, preference, wisdom, artifact |
+| `allowDynamicNodeTypes` | `boolean` | `false` |
+| `traceDir` | `string` | no file trace |
+
+Passing `tools: []` disables tools. Omitting `tools` creates the default workspace tools.
+
+## `run()`
+
+```ts
+run(input: TaskInput, options?: AgentRunOptions): Promise<AgentRunResult>
+```
+
+`TaskInput` is a string or `{ input, objective? }`. A stateful agent serializes concurrent calls. Successful runs update the agent-owned state.
+
+Options:
+
+```ts
+type AgentRunOptions = {
+  signal?: AbortSignal;
+  state?: AgentState;
+  onProgress?: (progress: AgentProgress) => void;
+};
+```
+
+Passing `options.state` runs against that explicit snapshot and does not mutate the agent-owned session.
+
+## `streamEvents()`
+
+```ts
+streamEvents(input, options?): AsyncIterable<AgentStreamEvent>
+```
+
+Emits:
+
+1. `metadata` before work begins;
+2. zero or more `progress` events;
+3. one `final` event after a successful commit.
+
+If the consumer closes early, the run is aborted. Errors are thrown by the iterator.
+
+## `stream()` and `streamText()`
+
+```ts
+stream(input, options?): AsyncIterable<string>
+streamText(input, options?): AsyncIterable<string>
+```
+
+Both yield the accepted final answer as one string. They do not currently expose provider token deltas.
+
+## `getState()`
+
+```ts
+getState(): AgentState | undefined
+```
+
+Returns a structured clone of committed state. It is `undefined` before the first successful run unless initial state was supplied.
+
+## `getGraph()`
+
+```ts
+getGraph(): StateGraph
+```
+
+Returns a visualization view. It is not the lossless persistence format.
+
+## `reset()`
+
+```ts
+reset(state?: AgentState): void
+```
+
+Without an argument, clears committed state. With a snapshot, validates and replaces it. A generation guard prevents an in-flight older run from overwriting a later reset.
+
+## Result
+
+```ts
+type AgentRunResult = {
+  finalAnswer: string;
+  state: AgentState;
+  graph: StateGraph;
+  trace: AgentTraceStep[];
+  metadata: AgentRunMetadata;
+};
+```
+
+Metadata reports run identity, engine, tools, limits, semantic configuration, timing, step count, model and tool calls, and token totals.
+
+## `AgentRunError`
+
+A failed or aborted run throws:
+
+```ts
+class AgentRunError extends Error {
+  readonly state: AgentState;
+  readonly graph: StateGraph;
+  readonly trace: AgentTraceStep[];
+  readonly metrics: {
+    modelCalls: number;
+    toolCalls: number;
+    latestContextTokens: number;
+    totalInputTokens: number;
+    outputTokens: number;
+  };
+}
+```
+
+The fields describe diagnostic run state. They do not replace the agent’s last successful commit.
