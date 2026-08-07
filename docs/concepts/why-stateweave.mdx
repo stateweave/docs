@@ -1,39 +1,39 @@
 ---
 title: Why StateWeave
-description: Why durable agent state and model context should be different objects.
+description: Why durable state and model context are different objects.
 ---
 
 ## State is not context
 
 A transcript answers one question well: **what was said next?**
 
-An agent needs harder answers:
+An agent asks harder questions:
 
-- Which evidence supported this action?
-- Which file version is current?
-- Which preference superseded an older one?
-- What did this inference actually read?
-- What can leave the prompt without leaving history?
+- which evidence supported an action;
+- which file version is current;
+- which preference replaced an older one;
+- what this inference actually read;
+- what can leave the prompt without leaving history.
 
-A chronological array can contain those facts, but it cannot express them directly. Meaning has to be recovered from position and prose.
+A list of messages can contain these facts, but it cannot express them directly.
 
 ## The transcript tradeoff
 
-A conventional loop stores:
+A normal loop stores:
 
 ```txt
 system → user → assistant → tool → assistant → user → …
 ```
 
-To fit the next call, it usually chooses one of three policies:
+To fit the next call, it picks one policy:
 
 | Policy | Benefit | Cost |
 | --- | --- | --- |
-| Replay | Exact recent text | Context grows without bound |
-| Truncate | Predictable size | Old evidence disappears |
-| Summarize | Compact history | Generated prose replaces source structure |
+| Replay | Exact recent text | Context grows forever |
+| Truncate | Predictable size | Old evidence vanishes |
+| Summarize | Compact history | A summary replaces the source |
 
-These are reasonable context policies. They are weak definitions of durable state.
+These are fine context policies. They are weak definitions of durable state.
 
 ## The graph separation
 
@@ -45,35 +45,38 @@ system ───────┐
 prior frontier┘                                      └─────── answer
 ```
 
-Parents mean direct dependency. `resourceKey` creates immutable version chains. The frontier marks current heads. A later turn begins from those heads rather than from the last line of a transcript.
-
-The next prompt is compiled from that graph. It includes required roots and heads, recent authoritative evidence, bounded operational ancestry, relevant older nodes, and a deterministic digest of the whole graph.
+Parents mean direct dependency. `resourceKey` creates version chains. The frontier marks today's heads. The next turn starts from those heads, not from the last line of a transcript.
 
 <div className="sw-invariant">
   <b>Separation</b>
-  <p>Persistence can remain lossless while model context remains bounded.</p>
+  <p>Persistence can be lossless while context stays bounded.</p>
 </div>
 
-## Why exact read-set parents matter
+## Exact read-set parents
 
-Suppose an agent has 200 graph nodes, but an inference receives 18. The runtime records those 18 node IDs as the inference’s parents.
+Suppose the graph has 200 nodes. One inference reads 18. StateWeave records those 18 IDs as the inference's parents.
 
-That gives causality a testable meaning: not “these nodes seem related,” but “these are the nodes the runtime rendered into this model call.”
+That gives causality a testable meaning. Not "these seem related," but "these are the nodes the runtime rendered into this call."
 
-No second classification call is needed. No model-generated edge syntax is trusted. The lineage falls out of prompt construction.
+No second model call. No model-drawn edges. The line from source to use falls out of prompt construction.
 
-## Supersession without deletion
+## Change without deletion
 
-A file, preference, or durable lesson can change. StateWeave appends the new value and links it to the previous value through a stable resource key.
+A preference or file can change. StateWeave appends the new value and links it to the old one through a stable key.
 
 ```txt
 preference:response-style:1 → preference:response-style:2
 ```
 
-Projection treats the newest head as authoritative. Both versions remain in `AgentState`.
+Projection treats the newest head as current. Both stay in `AgentState`.
 
-## The boundaries of the claim
+## The honest limits
 
-StateWeave does not make a model infallible. A graph can preserve bad evidence. Relevance ranking can omit useful history. A provider still processes the compiled prompt. Persistence and access control remain application responsibilities.
+- StateWeave does not make a model infallible.
+- A graph can keep bad evidence.
+- Ranking can omit useful history.
+- Persistence and access control are your job.
 
-The primitive improves state identity, provenance, boundedness, and inspectability. Product quality still depends on the model, tools, policies, and evidence you connect to it.
+The primitive improves identity, provenance, boundedness, and inspection. Product quality still depends on the model, tools, and policy you connect.
+
+Next: [Nodes](/concepts/nodes).

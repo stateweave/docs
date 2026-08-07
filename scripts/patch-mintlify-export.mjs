@@ -37,16 +37,26 @@ serve = serve
 await writeFile(servePath, serve);
 
 const chunksDir = path.join(root, "_next", "static", "chunks");
-const socketMarker = 'console.warn("Connected to Socket.io"),(n=a())';
+// Mintlify ships a live-reload Socket.io client in its exported client chunks.
+// It would try to reconnect to an absent dev server when served statically. The
+// minified connect expression changed variable names across builds (older:
+// `(n=a())`, newer: `(n=s())`), so we match the stable anchor
+//   console.warn("Connected to Socket.io"),(n=VAR())
+// and replace the socket object with a no-op that can never connect, reload,
+// or reconnect.
 const socketReplacement = '(n={on:()=>n,disconnect:()=>{}})';
+const socketAnchor = /console\.warn\("Connected to Socket\.io"\),\(n=[a-z]\(\)\)/;
 let socketPatches = 0;
 for (const entry of await readdir(chunksDir)) {
   if (!entry.endsWith(".js")) continue;
   const filePath = path.join(chunksDir, entry);
   const source = await readFile(filePath, "utf8");
-  if (!source.includes(socketMarker)) continue;
-  await writeFile(filePath, source.replaceAll(socketMarker, socketReplacement));
-  socketPatches += 1;
+  if (!source.includes('"Connected to Socket.io"')) continue;
+  let next = source;
+  const before = next;
+  next = next.replace(socketAnchor, socketReplacement);
+  if (next !== before) socketPatches += 1;
+  await writeFile(filePath, next);
 }
 
 if (socketPatches !== 1) {

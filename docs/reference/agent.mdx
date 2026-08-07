@@ -1,11 +1,11 @@
 ---
 title: Agent API
-description: Constructor options, methods, defaults, results, and failure semantics.
+description: Constructor options, methods, defaults, results, and error semantics.
 ---
 
 ## `Agent`
 
-The single public agent class backed by Causal Weave v3.
+The single public class, backed by Causal Weave v3.
 
 ```ts
 new Agent(args: AgentArgs)
@@ -18,18 +18,26 @@ new Agent(args: AgentArgs)
 | `model` | `Model` | required |
 | `tools` | `Tool[]` | scoped workspace tools |
 | `state` | `AgentState` | empty state |
-| `systemPrompt` | `string` | built-in agent instruction |
+| `systemPrompt` | `string` | built-in instruction |
 | `providerSystem` | `string` | built-in action protocol |
 | `maxIterations` | `number` | `30` |
 | `maxNoProgressIterations` | `number` | unset |
 | `maxPromptTokens` | `number` | `64_000` |
-| `projectionTargetTokens` | `number` | `16_000`, clamped to hard ceiling |
+| `projectionTargetTokens` | `number` | `16_000`, clamped to ceiling |
 | `enforceCompletionEvidence` | `boolean` | `true` |
 | `nodeTypes` | `SemanticNodeType[]` | memory, preference, wisdom, artifact |
 | `allowDynamicNodeTypes` | `boolean` | `false` |
 | `traceDir` | `string` | no file trace |
 
-Passing `tools: []` disables tools. Omitting `tools` creates the default workspace tools.
+`tools: []` disables tools. Omitting `tools` creates the default workspace tools.
+
+<Accordion>
+  <AccordionItem title="Why the defaults differ">
+    - `enforceCompletionEvidence` is on for coding work: an agent cannot claim a
+      change it never made.
+    - `allowDynamicNodeTypes` is off so semantic types stay governable.
+  </AccordionItem>
+</Accordion>
 
 ## `run()`
 
@@ -37,9 +45,7 @@ Passing `tools: []` disables tools. Omitting `tools` creates the default workspa
 run(input: TaskInput, options?: AgentRunOptions): Promise<AgentRunResult>
 ```
 
-`TaskInput` is a string or `{ input, objective? }`. A stateful agent serializes concurrent calls. Successful runs update the agent-owned state.
-
-Options:
+`TaskInput` is a string or `{ input, objective? }`. A stateful agent serializes concurrent calls. Successful runs update its state.
 
 ```ts
 type AgentRunOptions = {
@@ -49,7 +55,7 @@ type AgentRunOptions = {
 };
 ```
 
-Passing `options.state` runs against that explicit snapshot and does not mutate the agent-owned session.
+Passing `options.state` runs against that snapshot without mutating the agent-owned session.
 
 ## `streamEvents()`
 
@@ -57,13 +63,7 @@ Passing `options.state` runs against that explicit snapshot and does not mutate 
 streamEvents(input, options?): AsyncIterable<AgentStreamEvent>
 ```
 
-Emits:
-
-1. `metadata` before work begins;
-2. zero or more `progress` events;
-3. one `final` event after a successful commit.
-
-If the consumer closes early, the run is aborted. Errors are thrown by the iterator.
+Emits `metadata` first, then zero or more `progress`, then one `final`. Closing early aborts the run. Errors are thrown by the iterator.
 
 ## `stream()` and `streamText()`
 
@@ -72,7 +72,11 @@ stream(input, options?): AsyncIterable<string>
 streamText(input, options?): AsyncIterable<string>
 ```
 
-Both yield the accepted final answer as one string. They do not currently expose provider token deltas.
+Both yield the accepted final answer as one string.
+
+<Note>
+  Provider tokens are not exposed on these methods yet. See [Models](/guides/models).
+</Note>
 
 ## `getState()`
 
@@ -80,7 +84,7 @@ Both yield the accepted final answer as one string. They do not currently expose
 getState(): AgentState | undefined
 ```
 
-Returns a structured clone of committed state. It is `undefined` before the first successful run unless initial state was supplied.
+A structured clone of committed state. `undefined` before the first success unless initial state was supplied.
 
 ## `getGraph()`
 
@@ -88,7 +92,7 @@ Returns a structured clone of committed state. It is `undefined` before the firs
 getGraph(): StateGraph
 ```
 
-Returns a visualization view. It is not the lossless persistence format.
+A visualization view. Not the lossless persistence format.
 
 ## `reset()`
 
@@ -96,7 +100,7 @@ Returns a visualization view. It is not the lossless persistence format.
 reset(state?: AgentState): void
 ```
 
-Without an argument, clears committed state. With a snapshot, validates and replaces it. A generation guard prevents an in-flight older run from overwriting a later reset.
+No argument clears state. A snapshot validates and replaces it. A generation guard stops an older in-flight run from overwriting a later reset.
 
 ## Result
 
@@ -110,11 +114,9 @@ type AgentRunResult = {
 };
 ```
 
-Metadata reports run identity, engine, tools, limits, semantic configuration, timing, step count, model and tool calls, and token totals.
+Metadata reports run identity, engine, tools, limits, semantic config, timing, step count, and token totals.
 
 ## `AgentRunError`
-
-A failed or aborted run throws:
 
 ```ts
 class AgentRunError extends Error {
@@ -131,4 +133,6 @@ class AgentRunError extends Error {
 }
 ```
 
-The fields describe diagnostic run state. They do not replace the agent’s last successful commit.
+These describe the failed run. They do not replace the last successful commit.
+
+Next: [Types and exports](/reference/types).

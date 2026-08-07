@@ -1,28 +1,30 @@
 # StateWeave
 
-> StateWeave is a low-level TypeScript SDK for immutable causal agent state. The graph is canonical state; each model prompt is a bounded causal projection. The public SDK has one agent class: Agent.
+> StateWeave is a low-level TypeScript SDK for persistent agents built on an immutable causal graph. The graph is canonical truth; each model prompt is a bounded projection. The public SDK has one agent class: Agent.
 
 ## Start
 
-- [Introduction](https://stateweave.dev/introduction): The primitive, core invariant, and ownership boundaries.
-- [Quickstart](https://stateweave.dev/quickstart): Build from source, run a deterministic agent, persist state, and connect Anthropic.
+- [Introduction](https://stateweave.dev/introduction): What StateWeave is, the one principle, and ownership boundaries.
+- [Quickstart](https://stateweave.dev/quickstart): Build from source, run a deterministic agent, persist state, and connect a provider.
 
 ## Understand
 
-- [Why StateWeave](https://stateweave.dev/concepts/why-stateweave): Why durable state and model context should be different objects.
-- [How it works](https://stateweave.dev/concepts/how-it-works): One turn through append, projection, action, evidence, and transactional commit.
-- [AgentState](https://stateweave.dev/concepts/agent-state): Nodes, frontier, resource versions, semantic memory, and validation.
+- [Why StateWeave](https://stateweave.dev/concepts/why-stateweave): Why durable state and model context are different objects.
+- [Nodes](https://stateweave.dev/concepts/nodes): The ten node kinds, frontier, resource versions, and semantic memory.
+- [One turn](https://stateweave.dev/concepts/the-turn): Append, projection, action, evidence, and transactional commit.
+- [Projection](https://stateweave.dev/concepts/projection): How a large graph becomes a small, focused prompt.
 
 ## Build
 
-- [Models and tools](https://stateweave.dev/guides/models-and-tools): Provider-neutral model adapters, Zod tools, and default workspace boundaries.
-- [Persist and stream](https://stateweave.dev/guides/persist-and-stream): State ownership, concurrency, engine events, visualization, traces, and failure.
-- [Complete agent](https://stateweave.dev/examples/complete-agent): A server-owned TypeScript integration and coding-agent variant.
+- [Tools](https://stateweave.dev/guides/tools): Zod tools and the safe default workspace tools.
+- [Models](https://stateweave.dev/guides/models): The provider-neutral Model interface and included adapters.
+- [Persist and stream](https://stateweave.dev/guides/persist-and-stream): State ownership, concurrency, engine events, and failure.
+- [Complete agent](https://stateweave.dev/examples/complete-agent): A server-owned integration and coding-agent variant.
 
 ## Reference
 
-- [Agent API](https://stateweave.dev/reference/agent): Constructor options, methods, defaults, results, and AgentRunError.
-- [Types and exports](https://stateweave.dev/reference/types): State, model, tool, stream, graph-view, and low-level compatibility exports.
+- [Agent API](https://stateweave.dev/reference/agent): Constructor, methods, defaults, results, and AgentRunError.
+- [Types and exports](https://stateweave.dev/reference/types): Public state, model, tool, stream, graph, and low-level exports.
 
 ## Source
 
