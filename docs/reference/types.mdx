@@ -1,11 +1,11 @@
 ---
 title: Types and exports
-description: Public state, model, tool, stream, graph-view, and low-level utility exports.
+description: The public TypeScript surface: state, semantic config, model, tool, stream, graph view, and low-level utilities.
 ---
 
-## Public TypeScript surface
+## The public surface
 
-Import public values and types from the package root.
+Import from the package root.
 
 ```ts
 import { Agent, AnthropicModel, type AgentState } from "stateweave";
@@ -32,15 +32,12 @@ type AgentState = {
 };
 ```
 
-`AgentState` and its structural node shape are public through the `AgentState` alias; the internal causal node aliases are not separate package-root exports.
+`AgentState` is public. The internal causal node aliases are not separate package-root exports.
 
 ## Semantic configuration
 
 ```ts
-type SemanticNodeType = {
-  name: string;
-  description: string;
-};
+type SemanticNodeType = { name: string; description: string };
 
 // payload shape when a causal node has kind: "semantic"
 type SemanticPayload = {
@@ -50,7 +47,7 @@ type SemanticPayload = {
 };
 ```
 
-`SemanticNodeType` is exported. `SemanticPayload` above documents the runtime payload shape; it is not a separate package-root type. The default configured types are memory, preference, wisdom, and artifact.
+`SemanticNodeType` is exported. `SemanticPayload` documents the runtime shape; it is not a separate package-root type.
 
 ## Model
 
@@ -64,20 +61,15 @@ type ModelInput = {
   signal?: AbortSignal;
 };
 
-type ModelOutput = {
-  text: string;
-  usage?: ModelUsage;
-};
-
 type Model = {
   complete(input: ModelInput): Promise<ModelOutput>;
   stream(input: ModelInput): AsyncIterable<ModelToken>;
 };
 ```
 
-The public `Agent` calls `complete()` with `mode: "text"`, a compiled `prompt`, and no `frame`. The optional frame and `graph_ops` mode remain for the low-level compatibility utilities.
+The public `Agent` calls `complete()` with `mode: "text"`, a compiled `prompt`, and no `frame`. The optional frame and `graph_ops` mode stay for the low-level utilities.
 
-Primary adapter exports:
+Adapter exports:
 
 - `MockModel`
 - `AnthropicModel`
@@ -97,7 +89,7 @@ type Tool = {
 };
 ```
 
-Tool helpers:
+Helpers:
 
 - `createDefaultTools()`
 - `createFileSystemTools()`
@@ -143,24 +135,21 @@ type AgentTraceStep = {
 ## Visualization graph
 
 ```ts
-type StateGraph = {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-};
+type StateGraph = { nodes: GraphNode[]; edges: GraphEdge[] };
 ```
 
-`Agent.getGraph()` returns this view. `graphToMermaid()` renders it without graph-database or UI dependencies.
+`Agent.getGraph()` returns this view. `graphToMermaid()` renders it with no graph-database or UI dependency.
 
 ## Low-level graph utilities
 
-The package also exports GraphFrame-era graph construction and compatibility utilities:
+The package also exports GraphFrame-era utilities: graph creation, clone, fork, append-input, validation, serialization, GraphOps schemas, parsing, projection, and `GraphFrame`, `GraphOp`, `StateGraph`, and trace types.
 
-- graph creation, clone, fork, append-input, and validation helpers;
-- `serializeGraphFrame()` and `PromptBudgetExceededError`;
-- GraphOps schemas, parsing, validation, and application;
-- graph clustering and projection helpers;
-- low-level `GraphFrame`, `GraphOp`, `StateGraph`, and trace types.
+<Note>
+  Legacy compatibility.
+  These utilities remain exported for historical artifact compatibility and
+  explicit graph work. The public `Agent` uses Causal Weave v3, not GraphFrame
+  or the SWX GraphOps loop. There is no second public graph-frame agent class.
+</Note>
 
-These utilities remain available for explicit graph work and historical artifact compatibility. They are not the memory engine used by `Agent`, and the public SDK does not expose a second graph-frame agent class.
-
-For exact signatures, the package root is the authority: [`src/index.ts`](https://github.com/stateweave/sdk-typescript/blob/development/src/index.ts).
+For exact signatures, the package root is the authority:
+[`src/index.ts`](https://github.com/stateweave/sdk-typescript/blob/development/src/index.ts).

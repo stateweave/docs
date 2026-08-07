@@ -1,0 +1,71 @@
+---
+title: Models
+description: Plug in any provider through one small, neutral Model interface.
+---
+
+## One small interface
+
+A provider adapter implements two methods.
+
+```ts
+type Model = {
+  complete(input: ModelInput): Promise<ModelOutput>;
+  stream(input: ModelInput): AsyncIterable<ModelToken>;
+};
+```
+
+The public `Agent` loop calls `complete()`. Implement `stream()` for interface completeness and direct adapter use.
+
+```ts
+import type { Model } from "stateweave";
+
+export const model: Model = {
+  async complete(input) {
+    const response = await provider.generate({
+      system: input.system,
+      prompt: input.prompt,
+      signal: input.signal
+    });
+    return { text: response.text, usage: response.usage };
+  },
+
+  async *stream(input) {
+    yield { type: "token", token: (await this.complete(input)).text };
+  }
+};
+```
+
+Keep adapters thin. Do not rebuild transcripts or summarize state inside the adapter. `input.prompt` is already the compiled causal view.
+
+## Included adapters
+
+```ts
+import { AnthropicModel, createModelFromEnv, MockModel } from "stateweave";
+```
+
+- `MockModel`: deterministic tests, no provider.
+- `AnthropicModel`: a thin HTTP adapter, no Anthropic SDK dependency.
+- `createModelFromEnv()`: picks mock or Anthropic from environment variables.
+
+## What the agent receives
+
+The provider gets:
+
+```txt
+input.prompt   the compiled causal view
+input.system   the action protocol and tool list
+signal         an abort signal
+parameters     adapter-specific
+```
+
+The provider still sees a linear token sequence. That sequence is a temporary compilation of graph state, not stored chat history.
+
+<Note>
+  Not exposed yet.
+  `stream()` and `streamText()` return the accepted final answer as one
+  value. They do not yet stream raw provider tokens through the public loop.
+  `agent.streamEvents()` does report engine progress, including exact prompts
+  and raw outputs in its progress and trace events.
+</Note>
+
+Next: [Persist and stream](/guides/persist-and-stream).

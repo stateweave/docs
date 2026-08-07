@@ -1,0 +1,98 @@
+---
+title: Tools
+description: Write narrowly scoped Zod tools and use the safe default workspace tools.
+---
+
+## Tools are a boundary you supply
+
+StateWeave owns the graph. Models and tools are explicit boundaries you pass to `Agent`.
+
+## Tool contract
+
+A tool is a small object with a name, a description, a Zod schema, and an executor.
+
+```ts
+type Tool = {
+  name: string;
+  description: string;
+  schema: z.ZodSchema;
+  execute: (args: unknown) => Promise<unknown>;
+};
+```
+
+<Accordion>
+  <AccordionItem title="Expand: a complete custom tool">
+    ```ts
+    import { z } from "zod";
+    import type { Tool } from "stateweave";
+
+    const args = z.object({ orderId: z.string().regex(/^ord_[a-z0-9]+$/) });
+
+    export const lookupOrder: Tool = {
+      name: "lookup_order",
+      description: "Look up one order by its ord_ identifier.",
+      schema: args,
+      async execute(raw) {
+        const { orderId } = args.parse(raw);
+        const order = await orders.findById(orderId);
+        return order
+          ? { ok: true, orderId, status: order.status }
+          : { ok: false, orderId, error: "not_found" };
+      }
+    };
+    ```
+  </AccordionItem>
+</Accordion>
+
+```ts
+const agent = new Agent({ model, tools: [lookupOrder] });
+```
+
+Descriptions become part of the provider's system contract. The runtime validates arguments before execution and records both success and failure.
+
+## Default workspace tools
+
+Omit `tools` and `Agent` creates four workspace-scoped tools:
+
+- `read_file`
+- `write_file`
+- `edit_file`
+- read-only `bash_command`
+
+Pass `tools: []` for no tools. Pass your own array to replace the defaults.
+
+```ts
+import { createFileSystemTools } from "stateweave";
+
+const tools = createFileSystemTools({
+  rootDir: "/srv/sandboxes/run-123",
+  timeoutMs: 5_000,
+  maxOutputBytes: 32_000,
+  allowedBashCommands: ["pwd", "ls", "rg", "node"]
+});
+```
+
+## Boundaries built in
+
+The file tools reject absolute paths, traversal, and symlink components. The shell tool is a fixed-`PATH`, read-only allowlist. It rejects pipes, redirects, command substitution, arbitrary interpreters, and network commands.
+
+These checks reduce scope. They are **not** a process sandbox.
+
+<Note>
+  Security boundary.
+  For untrusted coding work, run the whole agent inside an isolated
+  filesystem and process boundary. StateWeave's path checks are defense in
+  depth, not tenant isolation.
+</Note>
+
+## Design tools for evidence
+
+Return small, structured values with stable identifiers and status.
+
+```ts
+return { ok: true, resource: "order:ord_123", version: "7", status: "shipped" };
+```
+
+Structured results improve projection and inspection. Do not return secrets, unlimited logs, or data the next call does not need.
+
+Next: [Models](/guides/models).

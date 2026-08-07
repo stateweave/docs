@@ -1,11 +1,11 @@
 ---
 title: Complete agent
-description: A small server-owned TypeScript agent with custom memory, tools, persistence, and progress.
+description: A server-owned agent with custom tools, memory, persistence, and progress.
 ---
 
-## A complete integration
+## One complete integration
 
-This example keeps one user’s `AgentState` in a store, exposes one narrow tool, emits progress, and commits only a successful result.
+This example keeps one user's `AgentState` in a store, exposes one narrow tool, emits progress, and commits only on success.
 
 ```ts
 import { z } from "zod";
@@ -30,11 +30,7 @@ const lookupService: Tool = {
   schema: statusArgs,
   async execute(raw) {
     const { service } = statusArgs.parse(raw);
-    return statusStore.get(service) ?? {
-      ok: false,
-      service,
-      error: "unknown_service"
-    };
+    return statusStore.get(service) ?? { ok: false, service, error: "unknown_service" };
   }
 };
 
@@ -46,8 +42,8 @@ const model = new AnthropicModel({
 });
 
 type Session = { revision: number; state?: AgentState };
-
 const rows = new Map<string, Session>();
+
 const sessions = {
   async load(id: string): Promise<Session> {
     return structuredClone(rows.get(id) ?? { revision: 0 });
@@ -59,19 +55,13 @@ const sessions = {
   }
 };
 
-const diagnostics = {
-  async write(value: unknown) {
-    console.error(JSON.stringify(value));
-  }
-};
-
 export async function answer(
   sessionId: string,
   input: string,
   signal: AbortSignal,
-  onProgress: (progress: AgentProgress) => void
+  onProgress: (p: AgentProgress) => void
 ) {
-  const session: Session = await sessions.load(sessionId);
+  const session = await sessions.load(sessionId);
 
   const agent = new Agent({
     model,
@@ -91,25 +81,14 @@ export async function answer(
 
   try {
     const result = await agent.run(input, { signal, onProgress });
-
     await sessions.compareAndSet(sessionId, session.revision, {
       revision: session.revision + 1,
       state: result.state
     });
-
-    return {
-      answer: result.finalAnswer,
-      state: result.state,
-      graph: result.graph,
-      run: result.metadata
-    };
+    return { answer: result.finalAnswer, state: result.state, graph: result.graph, run: result.metadata };
   } catch (error) {
     if (error instanceof AgentRunError) {
-      await diagnostics.write({
-        sessionId,
-        trace: error.trace,
-        metrics: error.metrics
-      });
+      console.error({ sessionId, trace: error.trace, metrics: error.metrics });
     }
     throw error;
   }
@@ -118,12 +97,12 @@ export async function answer(
 
 ## Why each choice exists
 
-- **One server-owned model.** Provider credentials and tool authority never enter browser state.
+- **One server-owned model.** Credentials and tool authority never touch browser state.
 - **Explicit tools.** Omitting `tools` would enable the default workspace tools; this product needs only service lookup.
-- **Product vocabulary.** `decision` is useful here, so it is configured instead of allowing arbitrary semantic types.
-- **Completion evidence off.** The built-in evidence policy targets coding work. Operational answers use product-specific policy and tool evidence.
-- **Compare-and-set persistence.** Two replicas cannot silently overwrite one session version.
-- **Diagnostic failure path.** Failed work is inspectable but does not become canonical session state.
+- **Product vocabulary.** `decision` matters here, so it is configured instead of allowing arbitrary semantic types.
+- **Completion evidence off.** The built-in policy targets coding work. Operational answers use product policy and tool evidence.
+- **Compare-and-set.** Two replicas cannot silently overwrite one session version.
+- **Diagnostic failure path.** Failed work is inspectable but not canonical.
 
 ## Coding-agent variant
 
@@ -145,20 +124,20 @@ const result = await coding.run(
 );
 ```
 
-Put `sandboxPath` inside a real process and filesystem sandbox when inputs are untrusted. StateWeave’s path checks are defense in depth, not tenant isolation.
+Put `sandboxPath` inside a real filesystem and process sandbox when inputs are untrusted.
 
 ## Test the causal contract
 
-A focused integration test should assert more than the answer:
-
 ```ts
 expect(result.metadata.engine).toBe("causal-weave-v3");
-expect(result.state.nodes.some((node) => node.kind === "goal")).toBe(true);
-expect(result.state.nodes.some((node) => node.kind === "answer")).toBe(true);
+expect(result.state.nodes.some((n) => n.kind === "goal")).toBe(true);
+expect(result.state.nodes.some((n) => n.kind === "answer")).toBe(true);
 expect(result.state.frontier.length).toBeGreaterThan(0);
 
-const answer = result.state.nodes.findLast((node) => node.kind === "answer")!;
-expect(answer.parents.length).toBeGreaterThan(0);
+const answerNode = result.state.nodes.findLast((n) => n.kind === "answer")!;
+expect(answerNode.parents.length).toBeGreaterThan(0);
 ```
 
-Use `MockModel` for deterministic unit tests and one real provider smoke test for action formatting, usage metadata, and semantic-node behavior.
+Use `MockModel` for deterministic tests and one real provider smoke test for action formatting and usage metadata.
+
+Next: [Agent API](/reference/agent).

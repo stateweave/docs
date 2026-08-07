@@ -1,0 +1,51 @@
+---
+title: Projection
+description: How the runtime turns a large graph into a small, focused prompt.
+---
+
+## The graph is big. The prompt is small.
+
+StateWeave never sends the whole graph. It compiles a bounded, causally connected view for one call.
+
+<img src="/images/projection-bounded-context.webp" alt="A full graph, a bounded window of selected nodes, and one model call" loading="lazy" />
+
+## What the view keeps
+
+The compiler selects:
+
+- system and goal roots;
+- every frontier head;
+- current resource heads;
+- recent authoritative evidence;
+- bounded operational closure;
+- lexically relevant older nodes;
+- a deterministic whole-graph digest.
+
+Equivalent repeated reads, calls, results, and superseded details collapse. They stay in `AgentState`; only the view is compact.
+
+## How it decides
+
+The compiler targets `projectionTargetTokens` and never exceeds `maxPromptTokens`.
+
+```txt
+graph nodes → rank by relevance + recency → select → bounded view
+```
+
+Mandatory causal state may push past the target, but never past the hard ceiling. If required state alone cannot fit, StateWeave fails locally before calling the provider.
+
+## Supersession in the view
+
+The newest resource head is authoritative. Old versions remain in the graph but do not pull their full history into every prompt. Provenance stays queryable in storage.
+
+## Design note
+
+<Note>
+  Working design, not final.
+  Projection currently ranks by lexical relevance, recency, and evidence
+  authority. Radi's "Peripheral Vision" concept (a deterministic big-brain
+  overview plus multi-resolution zoom, computed in pure TypeScript) is the
+  target evolution, but it is not yet implemented. This page will be
+  rewritten when that lands.
+</Note>
+
+Next: [Tools](/guides/tools).

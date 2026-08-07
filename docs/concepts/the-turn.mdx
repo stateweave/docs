@@ -1,0 +1,127 @@
+---
+title: One turn
+description: Follow one Agent turn through append, projection, action, evidence, and commit.
+---
+
+## A turn, end to end
+
+For a call:
+
+```ts
+const result = await agent.run("Inspect the parser and fix the failing test.");
+```
+
+The runtime runs this sequence.
+
+## 1. Append the goal
+
+The goal links to the previous frontier. On the first turn, the runtime also adds the system contract.
+
+```txt
+system ─┐
+        ├→ goal
+frontier┘
+```
+
+## 2. Compile the working view
+
+The compiler starts with required state:
+
+- latest system and goal;
+- every frontier head;
+- current resource heads;
+- ten recent non-superseded nodes;
+- up to two levels of operational parents.
+
+It ranks older candidates by relevance and recency, adds their bounded closure, and stops at a node budget. Repeated reads, calls, results, and errors collapse inside this view only.
+
+The view includes a deterministic whole-graph digest, so omitted history still contributes stable counts and recent notes.
+
+```txt
+CAUSAL_WEAVE/1
+frontier: …
+
+[graph digest]
+…
+
+[selected nodes]
+…
+```
+
+Defaults: **16,000** estimated target tokens, **64,000** hard ceiling.
+
+## 3. Call the model
+
+The provider gets:
+
+- `input.prompt`: the compiled view;
+- `input.system`: the action protocol and tool list;
+- an abort signal;
+- adapter parameters.
+
+The model returns one action:
+
+```txt
+TOOL_CALL {"name":"read_file","args":{"file_path":"src/parser.ts"}}
+```
+
+or:
+
+```txt
+FINAL: The parser accepts the valid form and the focused test passes.
+```
+
+The model does not return graph edges.
+
+## 4. Record the action
+
+Before the runtime acts, it appends an `inference` node. Its parents are exactly the IDs the compiler chose.
+
+```txt
+selected nodes → inference
+```
+
+This is the defining causal link.
+
+## 5. Execute or retry
+
+For a tool:
+
+1. validate the tool name and schema;
+2. record `tool_call`;
+3. run the tool;
+4. record `tool_result`;
+5. extract resource or verification evidence from the result;
+6. compile the next view.
+
+Invalid output becomes `protocol_error` and the loop continues. Failures stay as evidence for the next call.
+
+<Accordion>
+  <AccordionItem title="Expand: completion evidence">
+    When `enforceCompletionEvidence: true`, unsupported finals are rejected until
+    the graph shows the required inspection, mutation, restart, or verification.
+    This keeps an agent from claiming work it did not do.
+  </AccordionItem>
+</Accordion>
+
+## 6. Commit
+
+A successful final appends `answer`, produces `AgentRunResult`, and replaces the agent's committed state.
+
+A failed or aborted run throws `AgentRunError`. Its diagnostic state, graph, trace, and metrics stay on the error, but the agent keeps its last good state.
+
+<div className="sw-invariant">
+  <b>Commit rule</b>
+  <p>Successful runs advance state. Failed and aborted runs do not.</p>
+</div>
+
+## The knobs
+
+| Option | Default | Meaning |
+| --- | ---: | --- |
+| `maxIterations` | `30` | Model/action steps per turn |
+| `projectionTargetTokens` | `16_000` | Preferred view size |
+| `maxPromptTokens` | `64_000` | Hard prompt ceiling |
+| `maxNoProgressIterations` | unset | Optional repeated-state watchdog |
+
+Next: [Projection](/concepts/projection).

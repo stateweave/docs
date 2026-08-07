@@ -121,3 +121,28 @@ The memorable detail is the moving locus of truth: the complete graph remains, w
 ## Synthesis note
 
 The final direction combines the mental-model discipline of SICP and the Rust Book, the implementation transparency of Crafting Interpreters, the executable honesty of Zig and Go, and the retrieval discipline of TypeScript and Stripe. The result is not a language-book imitation or a generic API portal: it is a small field manual for one low-level primitive, written around the causal guarantees that make the primitive worth using.
+
+## 2026-08 revision: blueprint alignment
+
+Manual reworked into a compact, page-by-page "x-ray" of the exact SDK stack, keeping ten pages and four groups but tightening the language for a first-time developer who has never used such a primitive.
+
+Page map (as shipped):
+
+- Start: Introduction, Quickstart
+- Understand: Why StateWeave, Nodes, One turn, Projection
+- Build: Tools, Models, Persist and stream, Complete agent
+- Reference: Agent API, Types and exports
+
+Changes:
+
+- Pages renamed to match the mental model: `agent-state` -> `nodes`, `how-it-works` -> `the-turn`, `models-and-tools` split into `tools` + `models`. Old robots-path slugs keep permanent redirects in `docs.json`.
+- Added `Projection` as its own Understand page, since that is the defining causal mechanism.
+- Added three editorial vector diagrams generated with the image tool and stored under `docs/images/`: `causal-weave-overview.webp` (quickstart), `node-kinds.webp` (nodes), `projection-bounded-context.webp` (projection).
+- Busy detail moved into expandable `<Accordion>` containers (7 pages).
+- Every unfinished or not-yet-shipped item is flagged with a visible `<Note>` callout rather than hidden: npm publication pending (introduction, quickstart), provider token streaming not exposed (models, agent), dynamic `verification` node not yet emitted on every commit (nodes), and legacy GraphFrame utilities remain compatibility-only (types).
+
+Accuracy notes
+
+- Public examples use only the single `Agent` class backed by Causal Weave v3.
+- The quickstart uses a verified source build until the npm package exists.
+- These pages were checked against the SDK development tree at commit `c34d288` (promoted Causal Weave engine).

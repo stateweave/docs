@@ -1,0 +1,141 @@
+---
+title: Nodes
+description: The 10 node kinds, the frontier, resource versions, and semantic memory.
+---
+
+## The durable object
+
+`AgentState` has only two top-level fields: the nodes and the frontier.
+
+```ts
+type AgentState = {
+  version: 1;
+  nodes: CausalNode[];
+  frontier: string[];
+};
+```
+
+It is JSON, provider-neutral, and owned by your application.
+
+<img src="/images/node-kinds.webp" alt="A vocabulary of ten distinct node categories in one causal graph" loading="lazy" />
+
+## Node anatomy
+
+```ts
+type CausalNode = {
+  id: string;
+  kind: CausalNodeKind;
+  parents: string[];
+  payload: unknown;
+  createdAt: string;
+  sequence: number;
+  resourceKey?: string;
+};
+```
+
+| Field | Meaning |
+| --- | --- |
+| `id` | `cw_` plus a truncated SHA-256 content identity |
+| `parents` | Direct dependencies, all earlier in sequence |
+| `payload` | Kind-specific immutable data |
+| `sequence` | Stable insertion order |
+| `resourceKey` | Identity shared by versions of one resource |
+
+<Node kind="info" title="Node identity">
+  The `id` is a hash of kind, sorted parents, payload, and optional resource key. Timestamp and sequence are metadata, not identity. Two equal nodes with different timestamps are the same node.
+</Node>
+
+## The ten kinds
+
+There are exactly ten. All but a few are created by the runtime.
+
+| Kind | Who creates it | What it holds |
+| --- | --- | --- |
+| `system` | runtime | The contract given to the model |
+| `goal` | runtime | The current user task |
+| `inference` | runtime | The model's output for one call |
+| `answer` | runtime | The accepted final answer |
+| `tool_call` | runtime | One tool invocation |
+| `tool_result` | runtime | The typed result of that call |
+| `resource` | runtime | A versioned file path or value |
+| `semantic` | model + runtime | Durable memory (type, key, content) |
+| `protocol_error` | runtime | An invalid or unsupported action |
+| `verification` | runtime | A verification record |
+
+<Accordion>
+  <AccordionItem title="Expand: `verification`">
+    `verification` exists in the node vocabulary and is listed as a valid kind.
+    In the current engine, successful checks surface through `tool_result` and
+    `resource` nodes. The `Trading Agent` UI and several evals record
+    verification through tool evidence. A dedicated automated `verification`
+    node is not yet emitted by `Agent` in every run. Treat the kind as part of
+    the model, not yet a guarantee on every commit.
+  </AccordionItem>
+</Accordion>
+
+## The frontier
+
+The frontier is the set of active graph heads. Adding a normal node removes its parents from the frontier and adds the new node.
+
+A new goal uses the previous frontier as context, so continuity carries across turns. The frontier is not "the last message." Work can branch into several active heads.
+
+## Resource versions
+
+A node with a `resourceKey` becomes one version in a chain. The next node with the same key links to the previous head.
+
+```txt
+resource:file:src/config.ts:v1 → resource:file:src/config.ts:v2
+```
+
+The graph keeps both. Projection shows the newest.
+
+## Semantic memory
+
+A `semantic` node carries a payload with three fields:
+
+```ts
+type SemanticNodePayload = {
+  type: string;
+  key: string;
+  content: unknown;
+};
+```
+
+Built-in types:
+
+- `memory`: a durable fact or context;
+- `preference`: a stable user choice or style;
+- `wisdom`: a reusable, evidence-supported lesson;
+- `artifact`: a durable output or renderable artifact.
+
+You can replace this vocabulary per product:
+
+```ts
+const agent = new Agent({
+  model,
+  nodeTypes: [
+    { name: "preference", description: "A stable user preference." },
+    { name: "decision", description: "A durable decision and rationale." }
+  ]
+});
+```
+
+A semantic resource key has the form `semantic:<type>:<key>`. Writing the same key again supersedes the old value. The model records semantic nodes inside a normal `TOOL_CALL` or `FINAL`, so memory capture needs no second call.
+
+Set `allowDynamicNodeTypes: true` only when the agent may invent bounded lowercase types. Configured vocabularies are easier to retrieve and govern.
+
+## Safeguards on import
+
+The constructor and `reset()` check:
+
+- snapshot version;
+- allowed kinds;
+- unique IDs;
+- parent existence and causal order;
+- recomputed identities;
+- contiguous sequence values;
+- frontier references.
+
+Treat invalid imported state as untrusted input. Do not repair it silently.
+
+Next: [One turn](/concepts/the-turn).
