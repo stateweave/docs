@@ -14,7 +14,7 @@ type Model = {
 };
 ```
 
-The public `Agent` loop calls `complete()`. Implement `stream()` for interface completeness and direct adapter use.
+`Agent.run()` calls `complete()`. `Agent.streamEvents()` calls `stream()` and forwards its provider tokens and metadata before parsing the complete action envelope. Implement both methods when building an adapter.
 
 ```ts
 import type { Model } from "stateweave";
@@ -60,12 +60,17 @@ parameters     adapter-specific
 
 The provider still sees a linear token sequence. That sequence is a temporary compilation of graph state, not stored chat history.
 
-<Note>
-  Not exposed yet.
-  `stream()` and `streamText()` return the accepted final answer as one
-  value. They do not yet stream raw provider tokens through the public loop.
-  `agent.streamEvents()` does report engine progress, including exact prompts
-  and raw outputs in its progress and trace events.
-</Note>
+```ts
+for await (const event of agent.streamEvents("Inspect the workspace")) {
+  if (event.type === "model_token") process.stdout.write(event.token);
+  if (event.type === "model_metadata") console.log(event.metadata);
+  if (event.type === "final") console.log(event.result.finalAnswer);
+}
+```
+
+`stream()` and `streamText()` remain convenience methods that yield the accepted
+final answer after the complete action has been parsed and committed. Provider
+streaming is observable through `streamEvents()`; partial action text is not
+executed before the envelope is complete.
 
 Next: [Persist and stream](/guides/persist-and-stream).

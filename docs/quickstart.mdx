@@ -52,6 +52,7 @@ console.log(second.finalAnswer);           // Your name is Ada.
 `AgentState` is plain data. Store it where you store user-owned data.
 
 ```js
+import { promises as fs } from "node:fs";
 import { Agent, MockModel } from "./dist/index.js";
 
 await fs.writeFile("state.json", JSON.stringify(first.state));
@@ -62,7 +63,7 @@ const resumed = new Agent({ model: new MockModel(), tools: [], state });
 await resumed.run("Continue from the saved state.");
 ```
 
-When you import state, StateWeave checks identities, parent order, sequence, and frontier. Bad state is rejected, not repaired.
+When you import state, StateWeave checks identities, parent order, sequence, timestamps, resource keys, and frontier references. Bad state is rejected, not repaired.
 
 ## 4. Connect a provider
 
@@ -88,8 +89,8 @@ Keep provider keys on the server. Never expose them to the browser.
 <Accordion>
   <AccordionItem title="Expand: what happened">
     1. create a `system` root and a `goal`;
-    2. compile a bounded causal view;
-    3. call the model;
+    2. compile a bounded causal view with a deterministic big-brain map, peripheral summaries, focus detail, and timeline;
+    3. call the model (or stream provider tokens through `streamEvents()`);
     4. parse one ordinary action;
     5. record the inference and answer with exact read-set parents;
     6. commit a new `AgentState` only after success.

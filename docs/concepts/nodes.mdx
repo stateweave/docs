@@ -64,18 +64,20 @@ There are exactly ten. All but a few are created by the runtime.
 
 <Accordion>
   <AccordionItem title="Expand: `verification`">
-    `verification` exists in the node vocabulary and is listed as a valid kind.
-    In the current engine, successful checks surface through `tool_result` and
-    `resource` nodes. The `Trading Agent` UI and several evals record
-    verification through tool evidence. A dedicated automated `verification`
-    node is not yet emitted by `Agent` in every run. Treat the kind as part of
-    the model, not yet a guarantee on every commit.
+    `Agent` emits a dedicated `verification` node when a successful tool result
+    matches a recognized evidence pattern: a read after a tracked mutation,
+    `node --check`, or an `app_control` check, restart, or smoke action. The node
+    points to the successful `tool_result`; the result remains the detailed
+    evidence. This is a runtime signal, not a claim that StateWeave can judge
+    every domain-specific check. A successful custom tool result may also set
+    `verification: true` to record a generic verification signal; the detailed
+    evidence and domain policy remain your application's responsibility.
   </AccordionItem>
 </Accordion>
 
 ## The frontier
 
-The frontier is the set of active graph heads. Adding a normal node removes its parents from the frontier and adds the new node.
+The frontier is the set of active graph heads. Adding a normal node removes its parents from the frontier and adds the new node. Verification nodes are causal evidence heads; semantic nodes use keyed resource chains without replacing the answer/tool frontier.
 
 A new goal uses the previous frontier as context, so continuity carries across turns. The frontier is not "the last message." Work can branch into several active heads.
 

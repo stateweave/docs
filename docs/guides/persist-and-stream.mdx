@@ -10,11 +10,17 @@ StateWeave keeps state in memory while an `Agent` instance lives. Durable storag
 ## Save after success
 
 ```ts
-const current = await store.load(sessionId);
-const agent = new Agent({ model, tools, state: current ?? undefined });
+import { Agent, type AgentState } from "stateweave";
+
+type SessionRow = { revision: number; state?: AgentState };
+const current: SessionRow | undefined = await store.load(sessionId);
+const agent = new Agent({ model, tools, state: current?.state });
 
 const result = await agent.run(input, { signal: request.signal });
-await store.compareAndSet(sessionId, current?.revision, result.state);
+await store.compareAndSet(sessionId, current?.revision ?? 0, {
+  revision: (current?.revision ?? 0) + 1,
+  state: result.state
+});
 
 return result.finalAnswer;
 ```
@@ -34,14 +40,16 @@ A stateful `Agent` serializes calls inside one process, not across replicas. For
 
 ## Watch engine progress
 
-`streamEvents()` reports causal progress, not provider tokens.
+`streamEvents()` reports causal progress and forwards provider tokens/metadata while each model action is being collected.
 
 ```ts
 for await (const event of agent.streamEvents(input, { signal })) {
   if (event.type === "metadata") console.log(event.metadata.runId);
+  if (event.type === "model_token") process.stdout.write(event.token);
+  if (event.type === "model_metadata") console.log(event.metadata);
   if (event.type === "progress") {
     console.log(event.progress.phase, event.progress.detail);
-    renderGraph(event.progress.graph);
+    if (event.progress.graph) renderGraph(event.progress.graph);
   }
   if (event.type === "final") {
     await store.save(event.result.state);
@@ -50,7 +58,7 @@ for await (const event of agent.streamEvents(input, { signal })) {
 }
 ```
 
-Phases: `context`, `model`, `tool`, `retrying`, `final`. Events may include the exact prompt, state, graph view, raw output, action, tool, or error.
+Phases: `context`, `model`, `tool`, `retrying`, `final`. Progress events may include the exact prompt, graph view, raw output, action, tool, or error. Model events are separate so a consumer can render provider tokens without mistaking partial protocol text for a final answer.
 
 For just the answer:
 

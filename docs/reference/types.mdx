@@ -130,7 +130,18 @@ type AgentTraceStep = {
 };
 ```
 
-`AgentStreamEvent` is a discriminated union of `metadata`, `progress`, and `final`.
+`AgentStreamEvent` is a discriminated union of `metadata`, provider `model_token`/`model_metadata`, `progress`, and `final`:
+
+```ts
+type AgentStreamEvent =
+  | { type: "metadata"; metadata: AgentStartMetadata }
+  | { type: "model_token"; iteration: number; token: string }
+  | { type: "model_metadata"; iteration: number; metadata: Record<string, unknown> }
+  | { type: "progress"; progress: AgentProgress }
+  | { type: "final"; result: AgentRunResult };
+```
+
+`stream()` and `streamText()` are answer conveniences and yield one accepted final string; they do not execute partial action envelopes.
 
 ## Visualization graph
 
@@ -149,6 +160,8 @@ The package also exports GraphFrame-era utilities: graph creation, clone, fork, 
   These utilities remain exported for historical artifact compatibility and
   explicit graph work. The public `Agent` uses Causal Weave v3, not GraphFrame
   or the SWX GraphOps loop. There is no second public graph-frame agent class.
+  The public causal compiler now uses the deterministic projection machinery
+  internally; these GraphFrame projection functions remain compatibility APIs.
 </Note>
 
 For exact signatures, the package root is the authority:

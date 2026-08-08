@@ -22,8 +22,8 @@ new Agent(args: AgentArgs)
 | `providerSystem` | `string` | built-in action protocol |
 | `maxIterations` | `number` | `30` |
 | `maxNoProgressIterations` | `number` | unset |
-| `maxPromptTokens` | `number` | `64_000` |
-| `projectionTargetTokens` | `number` | `16_000`, clamped to ceiling |
+| `maxPromptTokens` | `number` | `64_000` (minimum 256) |
+| `projectionTargetTokens` | `number` | `16_000`, clamped to ceiling (minimum 256) |
 | `enforceCompletionEvidence` | `boolean` | `true` |
 | `nodeTypes` | `SemanticNodeType[]` | memory, preference, wisdom, artifact |
 | `allowDynamicNodeTypes` | `boolean` | `false` |
@@ -63,7 +63,15 @@ Passing `options.state` runs against that snapshot without mutating the agent-ow
 streamEvents(input, options?): AsyncIterable<AgentStreamEvent>
 ```
 
-Emits `metadata` first, then zero or more `progress`, then one `final`. Closing early aborts the run. Errors are thrown by the iterator.
+Emits `metadata` first, then model token/metadata events as available, zero or more `progress` events, and one `final`. Closing early aborts the run. Errors are thrown by the iterator.
+
+```ts
+for await (const event of agent.streamEvents("Inspect the workspace")) {
+  if (event.type === "model_token") process.stdout.write(event.token);
+  if (event.type === "model_metadata") console.log(event.metadata);
+  if (event.type === "final") console.log(event.result.finalAnswer);
+}
+```
 
 ## `stream()` and `streamText()`
 
@@ -72,11 +80,7 @@ stream(input, options?): AsyncIterable<string>
 streamText(input, options?): AsyncIterable<string>
 ```
 
-Both yield the accepted final answer as one string.
-
-<Note>
-  Provider tokens are not exposed on these methods yet. See [Models](/guides/models).
-</Note>
+Both yield the accepted final answer as one string. They do not yield partial protocol text; use `streamEvents()` for provider token events.
 
 ## `getState()`
 
@@ -133,6 +137,6 @@ class AgentRunError extends Error {
 }
 ```
 
-These describe the failed run. They do not replace the last successful commit.
+These describe the failed run. They do not replace the last successful commit. Invalid configuration and an impossible prompt budget fail before a provider call; a runtime failure after work has started exposes diagnostic state through this error.
 
 Next: [Types and exports](/reference/types).
