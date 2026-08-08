@@ -37,15 +37,28 @@ Mandatory causal state may push past the target, but never past the hard ceiling
 
 The newest resource head is authoritative. Old versions remain in the graph but do not pull their full history into every prompt. Provenance stays queryable in storage.
 
-## Design note
+## The multi-resolution view
+
+The public `Agent` compiler now renders four deterministic layers into the
+model-facing prompt:
+
+- `<BIG_BRAIN>`: stable topic-cluster pins for the whole graph;
+- `<PERIPHERAL>`: neighboring cluster summaries around the active work;
+- `<FOCUS>`: detailed nodes and causal parents selected for this turn;
+- `<TIMELINE>`: recent non-structural nodes in causal sequence.
+
+Cluster ids are computed from sorted graph node ids. Retrieval is query-aware and
+uses topology, lexical overlap, recency, and evidence authority. Superseded
+resource and semantic values remain in `AgentState` but lose projection priority.
+The graph is never compacted; only this view is bounded.
 
 <Note>
-  Working design, not final.
-  Projection currently ranks by lexical relevance, recency, and evidence
-  authority. Radi's "Peripheral Vision" concept (a deterministic big-brain
-  overview plus multi-resolution zoom, computed in pure TypeScript) is the
-  target evolution, but it is not yet implemented. This page will be
-  rewritten when that lands.
+  Deliberate boundary.
+  The public `Agent` chooses its focus automatically for each request. It does
+  not yet expose an interactive zoom/focus option. The lower-level historical
+  projection utility has zoom controls, but it is not the public Agent memory
+  engine. No embedding service or learned summary is required by the current
+  projection.
 </Note>
 
 Next: [Tools](/guides/tools).

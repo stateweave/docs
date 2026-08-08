@@ -11,14 +11,14 @@
 
 - [Why StateWeave](https://stateweave.dev/concepts/why-stateweave): Why durable state and model context are different objects.
 - [Nodes](https://stateweave.dev/concepts/nodes): The ten node kinds, frontier, resource versions, and semantic memory.
-- [One turn](https://stateweave.dev/concepts/the-turn): Append, projection, action, evidence, and transactional commit.
-- [Projection](https://stateweave.dev/concepts/projection): How a large graph becomes a small, focused prompt.
+- [One turn](https://stateweave.dev/concepts/the-turn): Append, projection, action, verification evidence, and transactional commit.
+- [Projection](https://stateweave.dev/concepts/projection): Deterministic big-brain, peripheral, focus, and timeline layers for a bounded prompt.
 
 ## Build
 
 - [Tools](https://stateweave.dev/guides/tools): Zod tools and the safe default workspace tools.
-- [Models](https://stateweave.dev/guides/models): The provider-neutral Model interface and included adapters.
-- [Persist and stream](https://stateweave.dev/guides/persist-and-stream): State ownership, concurrency, engine events, and failure.
+- [Models](https://stateweave.dev/guides/models): The provider-neutral Model interface, included adapters, and provider token events.
+- [Persist and stream](https://stateweave.dev/guides/persist-and-stream): State ownership, concurrency, token/engine events, and failure.
 - [Complete agent](https://stateweave.dev/examples/complete-agent): A server-owned integration and coding-agent variant.
 
 ## Reference

@@ -22,7 +22,7 @@ The SDK lives at <https://github.com/stateweave/sdk-typescript>.
 
 ## Manual structure
 
-The public manual is a compact, page-by-page blueprint of the SDK: ten pages across four jobs, written in plain language for a first-time developer. Bulky detail is collapsed into expandable containers, and unfinished features are flagged with visible `note` callouts.
+The public manual is a compact, page-by-page blueprint of the SDK: twelve pages across four jobs, written in plain language for a first-time developer. Bulky detail is collapsed into expandable containers, and release boundaries or deliberate limitations are flagged with visible `note` callouts.
 
 - **Start**: Introduction, Quickstart
 - **Understand**: Why StateWeave, Nodes, One turn, Projection
@@ -31,7 +31,7 @@ The public manual is a compact, page-by-page blueprint of the SDK: ten pages acr
 
 Its editorial basis and design selection are recorded in [`research/DOCUMENTATION_CANON.md`](./research/DOCUMENTATION_CANON.md).
 
-Public examples use only the single `Agent` API backed by Causal Weave v3. Until the initial npm package publication, the quickstart uses a verified source build rather than presenting a broken registry command.
+Public examples use only the single `Agent` API backed by Causal Weave v3. The exact development SDK includes deterministic multi-resolution projection, provider token events through `streamEvents()`, and recognized verification nodes. Until the initial npm package publication, the quickstart uses a verified source build rather than presenting a broken registry command.
 
 ## Local preview
 

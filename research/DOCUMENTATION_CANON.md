@@ -82,7 +82,7 @@ Official or author-maintained editions were preferred. Every linked web source w
 | Candidate | Governing concept | Structure | Score | Originality check |
 | --- | --- | --- | ---: | --- |
 | A. The Small Language Book | Treat StateWeave like a tiny language: values, evaluation, effects, state. | One linear 12-chapter book. | 88 | Strong conceptual frame, but risks implying a DSL and over-centering syntax. |
-| B. The Causal Field Manual | One invariant per page, one running turn, learning path plus exact lookup. | 10 pages: start 2, understand 3, build 3, reference 2. | **95** | Combines language-book causality with operational SDK clarity without resembling one source. |
+| B. The Causal Field Manual | One invariant per page, one running turn, learning path plus exact lookup. | 10-page candidate: start 2, understand 3, build 3, reference 2. | **95** | Combines language-book causality with operational SDK clarity without resembling one source. |
 | C. The Annotated Runtime | One complete `Agent.run()` trace with every layer annotated. | A long single page plus API appendix. | 90 | Distinct and concrete, but poor for returning readers and mobile retrieval. |
 | D. The Lab Notebook | Every concept begins with a runnable experiment and observed state diff. | Six labs plus two reference pages. | 91 | Excellent proof, but credentials and unpublished package make first contact heavier. |
 | E. The Causal Specification | Guarantees, non-guarantees, algorithms, then examples. | Normative spec with RFC language. | 86 | Precise but emotionally cold and too reference-first for adoption. |
@@ -109,7 +109,7 @@ What became ownable:
 
 What survives at small scale:
 
-- ten pages;
+- a compact page count (the selected blueprint began as ten pages and now ships twelve after the Projection page and Models/Tools split);
 - four navigation groups;
 - one orange accent;
 - one pipeline;
@@ -124,7 +124,7 @@ The final direction combines the mental-model discipline of SICP and the Rust Bo
 
 ## 2026-08 revision: blueprint alignment
 
-Manual reworked into a compact, page-by-page "x-ray" of the exact SDK stack, keeping ten pages and four groups but tightening the language for a first-time developer who has never used such a primitive.
+Manual reworked into a compact, page-by-page "x-ray" of the exact SDK stack, keeping twelve pages and four groups but tightening the language for a first-time developer who has never used such a primitive.
 
 Page map (as shipped):
 
@@ -139,10 +139,10 @@ Changes:
 - Added `Projection` as its own Understand page, since that is the defining causal mechanism.
 - Added three editorial vector diagrams generated with the image tool and stored under `docs/images/`: `causal-weave-overview.webp` (quickstart), `node-kinds.webp` (nodes), `projection-bounded-context.webp` (projection).
 - Busy detail moved into expandable `<Accordion>` containers (7 pages).
-- Every unfinished or not-yet-shipped item is flagged with a visible `<Note>` callout rather than hidden: npm publication pending (introduction, quickstart), provider token streaming not exposed (models, agent), dynamic `verification` node not yet emitted on every commit (nodes), and legacy GraphFrame utilities remain compatibility-only (types).
+- Release boundaries and deliberate limitations are flagged with visible `<Note>` callouts rather than hidden: npm publication pending (introduction, quickstart), the public Agent chooses focus automatically rather than exposing interactive zoom (projection), recognized verification patterns rather than arbitrary domain checks (nodes), and legacy GraphFrame utilities remain compatibility-only (types).
 
 Accuracy notes
 
 - Public examples use only the single `Agent` class backed by Causal Weave v3.
 - The quickstart uses a verified source build until the npm package exists.
-- These pages were checked against the SDK development tree at commit `c34d288` (promoted Causal Weave engine).
+- These pages were checked against the SDK development tree after the Causal Weave readiness pass: public multi-resolution projection, provider token events through `streamEvents()`, recognized verification nodes, strict prompt ceilings, and strengthened state validation.
